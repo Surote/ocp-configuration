@@ -18,3 +18,4 @@
 - **Deleting Machine Configs:**
   - If you want to delete the machine configs, delete them in reverse order to avoid exceeding the limit. For example, you delete the `kubelet-3` machine config before deleting the `kubelet-2` machine config.
 
+![Local Image](./src/kubeletconfig-to-mc.png "Kubeletconfig to Machine config")
