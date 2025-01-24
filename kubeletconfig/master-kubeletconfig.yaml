@@ -1,0 +1,41 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: master-kubeletconfig
+spec:
+  kubeletConfig:
+    cpuManagerReconcilePeriod: 10s
+    evictionHard:
+      imagefs.available: 10%
+      imagefs.inodesFree: 5%
+      memory.available: 200Mi
+      nodefs.available: 5%
+      nodefs.inodesFree: 4%
+    evictionPressureTransitionPeriod: 5m0s
+    evictionSoft:
+      imagefs.available: 15%
+      imagefs.inodesFree: 10%
+      memory.available: 500Mi
+      nodefs.available: 10%
+      nodefs.inodesFree: 5%
+    evictionSoftGracePeriod:
+      imagefs.available: 1m30s
+      imagefs.inodesFree: 1m30s
+      memory.available: 1m30s
+      nodefs.available: 1m30s
+      nodefs.inodesFree: 1m30s
+    fileCheckFrequency: 20s
+    httpCheckFrequency: 20s
+    imageGCHighThresholdPercent: 75
+    imageGCLowThresholdPercent: 70
+    imageMinimumGCAge: 5m 
+    nodeStatusReportFrequency: 1m
+    nodeStatusUpdateFrequency: 10s
+    shutdownGracePeriod: 0s
+    streamingConnectionIdleTimeout: 4h0m0s
+    syncFrequency: 1m0s
+    volumeStatsAggPeriod: 1m0s
+  autoSizingReserved: true
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/master: ""
