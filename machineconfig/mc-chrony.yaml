@@ -1,0 +1,41 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-worker-custom-ntp
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - contents:
+          compression: gzip
+          source: data:;base64,<STRING_COMPRESSION>
+        mode: 420
+        overwrite: true
+        path: /etc/chrony.conf
+  kernelArguments:
+  - loglevel=7
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-master-custom-ntp
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - contents:
+          compression: gzip
+          source: data:;base64,<STRING_COMPRESSION>
+        mode: 420
+        overwrite: true
+        path: /etc/chrony.conf
+  kernelArguments:
+  - loglevel=7

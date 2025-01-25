@@ -1,0 +1,51 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-worker-custom-timezone-configuration
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    systemd:
+      units:
+      - contents: |
+          [Unit]
+          Description=set timezone
+          After=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=timedatectl set-timezone Asia/Bangkok
+
+          [Install]
+          WantedBy=multi-user.target
+        enabled: true
+        name: custom-timezone.service
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-master-custom-timezone-configuration
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    systemd:
+      units:
+      - contents: |
+          [Unit]
+          Description=set timezone
+          After=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=timedatectl set-timezone Asia/Bangkok
+
+          [Install]
+          WantedBy=multi-user.target
+        enabled: true
+        name: custom-timezone.service
