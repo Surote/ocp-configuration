@@ -1,0 +1,20 @@
+apiVersion: monitoring.openshift.io/v1
+kind: AlertingRule
+metadata:
+  name: pvc-usage-alert
+  namespace: openshift-monitoring
+spec:
+  groups:
+  - name: pvc.rules
+    rules:
+    - alert: PersistentVolumeUsageHigh
+      annotations:
+        description: PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace
+          }} is using more than 70% of its capacity.
+        message: PVC usage is {{ $value }}%
+        summary: High PVC usage detected (> 70%)
+      expr: |
+        sum(100 * (1 - kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) > 70) by (namespace,persistentvolumeclaim)
+      for: 1m
+      labels:
+        severity: warning

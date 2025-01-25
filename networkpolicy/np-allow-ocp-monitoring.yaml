@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-group-monitoring
+ namespace: <NAMESPACE NAME>
+spec:
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            network.openshift.io/policy-group: monitoring
+  podSelector: {}
+  policyTypes:
+   - Ingress

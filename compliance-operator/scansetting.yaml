@@ -1,0 +1,25 @@
+timeout: 30m
+strictNodeScan: true
+autoApplyRemediations: false
+metadata:
+  name: rs-on-workers
+  namespace: openshift-compliance
+debug: true
+kind: ScanSetting
+showNotApplicable: false
+rawResultStorage:
+  nodeSelector:
+    node-role.kubernetes.io/infra-worker: ''
+  pvAccessModes:
+    - ReadWriteOnce
+  rotation: 3
+  size: 1Gi
+schedule: 0 17 * * *
+suspend: false
+roles:
+  - worker
+  - master
+apiVersion: compliance.openshift.io/v1alpha1
+maxRetryOnTimeout: 3
+scanTolerations:
+  - operator: Exists

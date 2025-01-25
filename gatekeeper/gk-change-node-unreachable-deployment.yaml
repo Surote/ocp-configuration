@@ -1,0 +1,19 @@
+apiVersion: mutations.gatekeeper.sh/v1
+kind: Assign
+metadata:
+  name: mutator-add-toleration-node-unreachable
+spec:
+  applyTo:
+  - groups: [""]
+    kinds: ["Pod"]
+    versions: ["v1"]
+  match:
+    namespaces: ["<PROJECT_NAME>"]
+  location: "spec.tolerations"
+  parameters:
+    assign:
+      value:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 40

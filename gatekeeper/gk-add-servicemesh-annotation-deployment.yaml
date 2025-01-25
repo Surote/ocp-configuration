@@ -1,0 +1,16 @@
+apiVersion: mutations.gatekeeper.sh/v1
+kind: Assign
+metadata:
+  name: mutator-annotation-servicemesh
+spec:
+  applyTo:
+  - groups: ["apps"]
+    kinds: ["Deployment"]
+    versions: ["v1"]
+  match:
+    namespaces: ["<PROJECT_NAME>"]
+  location: spec.template.metadata.annotations
+  parameters:
+    assign:
+      value:
+        sidecar.istio.io/inject: "true"
