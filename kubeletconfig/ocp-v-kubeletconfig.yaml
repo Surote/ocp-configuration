@@ -1,0 +1,16 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: worker-kubeletconfig-ocp-virt
+spec:
+  kubeletConfig:
+    maxPods: 2000
+    cpuManagerPolicy: static
+    cpuManagerReconcilePeriod: 5s
+    nodeStatusMaxImages: -1
+    kubeAPIBurst: 200
+    kubeAPIQPS: 100
+  autoSizingReserved: true
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
