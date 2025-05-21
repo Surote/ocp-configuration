@@ -4,6 +4,7 @@ metadata:
   name: worker-kubeletconfig-ocp-virt
 spec:
   kubeletConfig:
+    # maxPods - for single node baremetal only
     maxPods: 2000
     cpuManagerPolicy: static
     cpuManagerReconcilePeriod: 5s
