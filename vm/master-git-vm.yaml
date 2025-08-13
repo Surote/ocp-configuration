@@ -16,7 +16,7 @@ spec:
         source:
           sourceRef:
             kind: DataSource
-            name: 'rhel9-4ddcc3646842'
+            name: 'rhel9'
             namespace: 'openshift-virtualization-os-images'
         storage:
           resources:
