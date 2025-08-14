@@ -1,6 +1,8 @@
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
+  annotations:
+    argocd.argoproj.io/ignore-healthcheck: "true"
   name: master-git
   namespace: swongpai-virt-import
   labels:
@@ -28,7 +30,6 @@ spec:
         vm.kubevirt.io/flavor: small
         vm.kubevirt.io/os: fedora
         vm.kubevirt.io/workload: server
-        argocd.argoproj.io/ignore-healthcheck: 'true'
       creationTimestamp: null
       labels:
         kubevirt.io/domain: master-git
