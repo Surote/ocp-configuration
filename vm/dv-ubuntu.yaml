@@ -1,0 +1,13 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: ubuntu-2204
+  namespace: openshift-virtualization-os-images
+spec:
+  source:
+    http:
+      url: https://cloud-images.ubuntu.com/daily/server/jammy/current/jammy-server-cloudimg-amd64.img
+  storage:
+    resources:
+      requests:
+        storage: 10Gi
