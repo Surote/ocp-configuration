@@ -2,7 +2,7 @@ kind: Template
 apiVersion: template.openshift.io/v1
 metadata:
   name: fedora-golden-prefer
-  namespace: openshift-virtualization-os-images
+  namespace: openshift
   labels:
     app.kubernetes.io/part-of: hyperconverged-cluster
     template.kubevirt.io/architecture: amd64
@@ -14,7 +14,7 @@ metadata:
     app.kubernetes.io/component: templating
     app.kubernetes.io/managed-by: ssp-operator
     app.kubernetes.io/name: custom-templates
-    vm.kubevirt.io/template.namespace: openshift-virtualization-os-images
+    vm.kubevirt.io/template.namespace: openshift
     os.template.kubevirt.io/fedora40: 'true'
     workload.template.kubevirt.io/server: 'true'
     os.template.kubevirt.io/fedora41: 'true'
