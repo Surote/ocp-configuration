@@ -4,6 +4,8 @@ metadata:
   annotations:
     cdi.kubevirt.io/allowClaimAdoption: "true"
     cdi.kubevirt.io/storage.usePopulator: "true"
+    # for storageclass with wait-for-first-consumer
+    cdi.kubevirt.io/storage.bind.immediate.requested: "true"
   name: ubuntu-2204
   namespace: openshift-virtualization-os-images
 spec:
