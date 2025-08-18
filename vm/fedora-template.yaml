@@ -127,7 +127,7 @@ objects:
     spec:
       dataVolumeTemplates:
         - metadata:
-            name: 'dv-${NAME}-rootdisk'
+            name: '${NAME}-rootdisk'
           spec:
             source:
               pvc:
