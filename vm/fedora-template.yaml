@@ -49,7 +49,7 @@ metadata:
     template.kubevirt.io/provider-support-level: Community
     description: Template for Fedora Linux 40 VM or newer. A PVC with the Fedora disk image must be available.
     openshift.io/support-url: 'https://github.com/kubevirt/common-templates/issues'
-    iconClass: icon-x
+    iconClass: icon-opensuse
     name.os.template.kubevirt.io/fedora40: Fedora Linux 40 or higher
     openshift.io/provider-display-name: ''
   managedFields:
