@@ -1,0 +1,10 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: ip-addresspool-machine
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.16.28.110-172.16.28.120
+  autoAssign: true
+  avoidBuggyIPs: false
