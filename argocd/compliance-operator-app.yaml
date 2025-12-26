@@ -24,5 +24,6 @@ spec:
         maxDuration: 3m
     syncOptions:
       - CreateNamespace=true
+      # Needed because the CRDs (ScanSetting/ScanSettingBinding) are installed by the operator
+      # and won't exist during the initial sync dry-run.
       - SkipDryRunOnMissingResource=true
-
