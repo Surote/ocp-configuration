@@ -3,6 +3,8 @@ kind: ScanSettingBinding
 metadata:
   name: cis-compliance
   namespace: openshift-compliance
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 profiles:
   - apiGroup: compliance.openshift.io/v1alpha1
     kind: Profile

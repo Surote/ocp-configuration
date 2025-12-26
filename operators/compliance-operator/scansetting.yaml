@@ -4,12 +4,14 @@ autoApplyRemediations: false
 metadata:
   name: rs-on-workers
   namespace: openshift-compliance
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 debug: true
 kind: ScanSetting
 showNotApplicable: false
 rawResultStorage:
   nodeSelector:
-    node-role.kubernetes.io/infra-worker: ''
+    node-role.kubernetes.io/worker: ''
   pvAccessModes:
     - ReadWriteOnce
   rotation: 3
