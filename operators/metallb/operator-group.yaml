@@ -3,4 +3,5 @@ kind: OperatorGroup
 metadata:
   name: metallb-operator
   namespace: metallb-system
+# https://access.redhat.com/solutions/6429481
 spec: {}
