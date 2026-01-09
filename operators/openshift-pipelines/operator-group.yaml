@@ -3,6 +3,6 @@ kind: OperatorGroup
 metadata:
   name: openshift-pipelines-operator
   namespace: openshift-pipelines
+# https://access.redhat.com/solutions/6429481
 spec:
-  targetNamespaces:
-  - openshift-pipelines
+{}
