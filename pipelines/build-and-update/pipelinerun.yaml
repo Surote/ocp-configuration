@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: build-and-update-run
+spec:
+  pipelineRef:
+    name: ci-timecheck
+  serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: https://github.com/Surote/timecheck.git
+    - name: image-name
+      value: quay.io/rh_ee_swongpai/demo-tekton-01 # SHA will be appended automatically
+    - name: deployment-repo-url
+      value: https://github.com/Surote/timecheck-deployment.git
+    - name: deployment-file-path
+      value: overlays/dev/kustomization.yaml
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: pipeline-pvc
+    - name: quay-auth
+      secret:
+        secretName: quay-robot-credentials

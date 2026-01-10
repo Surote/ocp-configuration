@@ -1,0 +1,134 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-and-update
+spec:
+  workspaces:
+    - name: shared-workspace
+    - name: quay-auth
+  params:
+    - name: git-url
+      type: string
+      description: URL of the git repo for the application source
+    - name: git-revision
+      type: string
+      default: "main"
+      description: Revision of the git repo
+    - name: image-name
+      type: string
+      description: The fully qualified image name including registry (e.g. quay.io/user/app)
+    - name: deployment-repo-url
+      type: string
+      description: URL of the git repo for the deployment manifests
+    - name: deployment-file-path
+      type: string
+      description: Path to the kustomization.yaml file directly (folder path)
+  tasks:
+    - name: fetch-repository
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: subdirectory
+          value: ""
+        - name: deleteExisting
+          value: "true"
+
+    - name: get-sha
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: get-commit-sha
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - fetch-repository
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: build-image
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah
+          - name: namespace
+            value: openshift-pipelines
+      runAfter:
+        - get-sha
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: quay-auth
+      params:
+        - name: IMAGE
+          value: $(params.image-name):$(tasks.get-sha.results.commit)
+
+    - name: update-manifest
+      params:
+        - name: image-url
+          value: $(params.image-name)
+        - name: image-tag
+          value: $(tasks.get-sha.results.commit)
+        - name: deployment-repo
+          value: $(params.deployment-repo-url)
+        - name: path
+          value: $(params.deployment-file-path)
+      runAfter:
+        - build-image
+      taskSpec:
+        metadata: {}
+        params:
+          - name: image-url
+            type: string
+          - name: image-tag
+            type: string
+          - name: deployment-repo
+            type: string
+          - name: path
+            type: string
+        spec: null
+        steps:
+          - computeResources: {}
+            image: registry.access.redhat.com/ubi8/python-38
+            name: update-yaml
+            script: |
+              rm -rf $(workspaces.source.path)/deployment
+              mkdir $(workspaces.source.path)/deployment 
+              cd $(workspaces.source.path)/deployment
+              git clone $(params.deployment-repo) .
+              echo "Checking out repo"
+              git checkout main
+              git config --global --add safe.directory $(pwd)
+              sed -i "s|newName: .*|newName: $(params.image-url)|" $(params.path)
+              sed -i "s|newTag: .*|newTag: $(params.image-tag)|" $(params.path)
+              git config --global user.email "pipeline@example.com"
+              git config --global user.name "OpenShift Pipeline"
+              git add $(params.path)
+              git commit -m "Update image to $(params.image-url):$(params.image-tag)"
+              git push -u origin
+        workspaces:
+          - name: source
+      workspaces:
+        - name: source
+          workspace: shared-workspace

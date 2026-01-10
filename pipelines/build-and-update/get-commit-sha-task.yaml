@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: get-commit-sha
+spec:
+  workspaces:
+    - name: source
+  results:
+    - name: commit
+      description: The git commit SHA
+  steps:
+    - name: get-sha
+      image: alpine/git
+      script: |
+        git config --global --add safe.directory $(workspaces.source.path)
+        cd $(workspaces.source.path)
+        if [ -d ".git" ]; then
+          git rev-parse HEAD | tr -d '\n' > $(results.commit.path)
+        else
+          echo "Error: .git directory not found"
+          exit 1
+        fi
