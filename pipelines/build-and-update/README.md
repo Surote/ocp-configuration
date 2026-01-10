@@ -81,3 +81,7 @@ Once the prerequisites are set up, you can run the pipeline using the provided `
     ```bash
     oc create -f pipelinerun.yaml
     ```
+
+## Success Result
+
+![Pipeline Run Success](success-run.png)
