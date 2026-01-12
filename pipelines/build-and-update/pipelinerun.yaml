@@ -15,6 +15,8 @@ spec:
       value: https://github.com/Surote/timecheck-deployment.git
     - name: deployment-file-path
       value: overlays/dev/kustomization.yaml
+    - name: prod-deployment-file-path
+      value: overlays/prod/kustomization.yaml
   workspaces:
     - name: shared-workspace
       persistentVolumeClaim:

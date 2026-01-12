@@ -23,6 +23,9 @@ spec:
     - name: deployment-file-path
       type: string
       description: Path to the kustomization.yaml file directly (folder path)
+    - name: prod-deployment-file-path
+      type: string
+      description: Path to the production kustomization.yaml file directly (folder path)
   tasks:
     - name: fetch-repository
       taskRef:
@@ -125,8 +128,118 @@ spec:
               git config --global user.email "pipeline@example.com"
               git config --global user.name "OpenShift Pipeline"
               git add $(params.path)
-              git commit -m "Update image to $(params.image-url):$(params.image-tag)"
-              git push -u origin
+              if [[ -n $(git status -s) ]]; then
+                git commit -m "Update image to $(params.image-url):$(params.image-tag)"
+                git push -u origin
+              else
+                echo "No changes to commit."
+              fi
+        workspaces:
+          - name: source
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: approval-gate
+      taskRef:
+        apiVersion: openshift-pipelines.org/v1alpha1
+        kind: ApprovalTask
+      params:
+        - name: approvers
+          value:
+            - admin
+        - name: numberOfApprovalsRequired
+          value: '1'
+        - name: description
+          value: "Approve promotion to production"
+      runAfter:
+        - update-manifest
+
+    - name: promote-image
+      taskSpec:
+        steps:
+          - name: copy-image
+            image: quay.io/skopeo/stable:latest
+            script: |
+              AUTH_FILE=""
+              if [ -f "$(workspaces.dockerconfig.path)/.dockerconfigjson" ]; then
+                AUTH_FILE="$(workspaces.dockerconfig.path)/.dockerconfigjson"
+              elif [ -f "$(workspaces.dockerconfig.path)/config.json" ]; then
+                AUTH_FILE="$(workspaces.dockerconfig.path)/config.json"
+              fi
+
+              if [ -n "$AUTH_FILE" ]; then
+                echo "Using auth file: $AUTH_FILE"
+                skopeo copy --authfile "$AUTH_FILE" docker://$(params.src-image) docker://$(params.dest-image)
+              else
+                echo "No auth file found (checked .dockerconfigjson and config.json). Trying without explicit auth..."
+                skopeo copy docker://$(params.src-image) docker://$(params.dest-image)
+              fi
+        params:
+          - name: src-image
+            type: string
+          - name: dest-image
+            type: string
+      runAfter:
+        - approval-gate
+      workspaces:
+        - name: dockerconfig
+          workspace: quay-auth
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: src-image
+          value: $(params.image-name):$(tasks.get-sha.results.commit)
+        - name: dest-image
+          value: $(params.image-name):prod-$(tasks.get-sha.results.commit)
+
+    - name: update-prod-manifest
+      params:
+        - name: image-url
+          value: $(params.image-name)
+        - name: image-tag
+          value: prod-$(tasks.get-sha.results.commit)
+        - name: deployment-repo
+          value: $(params.deployment-repo-url)
+        - name: path
+          value: $(params.prod-deployment-file-path)
+      runAfter:
+        - promote-image
+      taskSpec:
+        metadata: {}
+        params:
+          - name: image-url
+            type: string
+          - name: image-tag
+            type: string
+          - name: deployment-repo
+            type: string
+          - name: path
+            type: string
+        spec: null
+        steps:
+          - computeResources: {}
+            image: registry.access.redhat.com/ubi8/python-38
+            name: update-yaml
+            script: |
+              rm -rf $(workspaces.source.path)/deployment-prod
+              mkdir $(workspaces.source.path)/deployment-prod
+              cd $(workspaces.source.path)/deployment-prod
+              git clone $(params.deployment-repo) .
+              echo "Checking out repo"
+              git checkout main
+              git config --global --add safe.directory $(pwd)
+              sed -i "s|newName: .*|newName: $(params.image-url)|" $(params.path)
+              sed -i "s|newTag: .*|newTag: $(params.image-tag)|" $(params.path)
+              git config --global user.email "pipeline@example.com"
+              git config --global user.name "OpenShift Pipeline"
+              git add $(params.path)
+              if [[ -n $(git status -s) ]]; then
+                git commit -m "Update prod image to $(params.image-url):$(params.image-tag)"
+                git push -u origin
+              else
+                echo "No changes to commit."
+              fi
         workspaces:
           - name: source
       workspaces:
