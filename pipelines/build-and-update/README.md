@@ -85,3 +85,5 @@ Once the prerequisites are set up, you can run the pipeline using the provided `
 ## Success Result
 
 ![Pipeline Run Success](success-run.png)
+
+![Pipeline Run Success with Approval](success-with-approval.png)
