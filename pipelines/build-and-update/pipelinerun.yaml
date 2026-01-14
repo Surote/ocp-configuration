@@ -5,7 +5,8 @@ metadata:
 spec:
   pipelineRef:
     name: ci-timecheck
-  serviceAccountName: pipeline
+  taskRunTemplate:
+    serviceAccountName: build-bot
   params:
     - name: git-url
       value: https://github.com/Surote/timecheck.git
