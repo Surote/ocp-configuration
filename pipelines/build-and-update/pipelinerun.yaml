@@ -9,7 +9,7 @@ spec:
     serviceAccountName: build-bot
   params:
     - name: git-url
-      value: https://github.com/Surote/timecheck.git
+      value: https://github.com/Surote/simple-fastapi.git
     - name: image-name
       value: quay.io/rh_ee_swongpai/demo-tekton-01 # SHA will be appended automatically
     - name: deployment-repo-url
