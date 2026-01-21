@@ -9,3 +9,10 @@ spec:
   name: openshift-pipelines-operator-rh
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+  config:
+    nodeSelector:
+      node-role.kubernetes.io/infra: ""
+    tolerations:
+    - key: node-role.kubernetes.io/infra
+      effect: NoSchedule
+      operator: Exists
