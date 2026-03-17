@@ -1,0 +1,18 @@
+apiVersion: k8s.ovn.org/v1
+kind: RouteAdvertisements
+metadata:
+  name: extranet2
+spec:
+  targetVRF: auto
+  advertisements:
+  - PodNetwork
+  frrConfigurationSelector:
+    matchLabels:
+      bgp-advertise: udn
+  networkSelectors:
+  - clusterUserDefinedNetworkSelector:
+      networkSelector:
+        matchLabels:
+          extranet2: "true"
+    networkSelectionType: ClusterUserDefinedNetworks
+  nodeSelector: {}

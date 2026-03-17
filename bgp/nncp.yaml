@@ -1,0 +1,21 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: w1-ens224-vrf-extranet
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: worker-1.lab.rhdemo.local
+  desiredState:
+    interfaces:
+    - name: ens224
+      type: ethernet
+      state: up
+      controller: extranet
+      ipv4:
+        dhcp: false
+        enabled: true
+        address:
+        - ip: 172.16.25.164
+          prefix-length: 24
+      ipv6:
+        enabled: false

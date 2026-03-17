@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cudn-01
+  labels:
+    k8s.ovn.org/primary-user-defined-network: ""
+    extranet: "true"

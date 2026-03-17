@@ -1,0 +1,36 @@
+apiVersion: frrk8s.metallb.io/v1beta1
+kind: FRRConfiguration
+metadata:
+  labels:
+    bgp-advertise: udn
+  name: peer-external-router
+  namespace: openshift-frr-k8s
+spec:
+  bgp:
+    routers:
+    - asn: 64512
+      vrf: extranet2
+      neighbors:
+      - address: 172.16.28.42 # IP BGP peer -> primary network
+        asn: 65000
+        disableMP: true
+        dualStackAddressFamily: false
+        toAdvertise:
+          allowed:
+            mode: all
+        toReceive:
+          allowed:
+            mode: all
+    - asn: 64512
+      vrf: extranet
+      neighbors:
+      - address: 172.16.25.41 # IP BGP peer -> secondary network
+        asn: 65000
+        disableMP: true
+        dualStackAddressFamily: false
+        toAdvertise:
+          allowed:
+            mode: all
+        toReceive:
+          allowed:
+            mode: all
