@@ -1,0 +1,31 @@
+apiVersion: monitoring.openshift.io/v1
+kind: AlertingRule
+metadata:
+  name: api-availability-alerts
+  namespace: openshift-monitoring
+spec:
+  groups:
+  - name: api.rules
+    rules:
+    - alert: APIServerHighErrorRate
+      annotations:
+        description: The API server {{ $labels.instance }} is returning {{ $value | humanizePercentage }} of errors for the last 5 minutes.
+        summary: API server has high error rate
+      expr: |
+        sum(rate(apiserver_request_total{code=~"5.."}[5m])) by (instance)
+          /
+        sum(rate(apiserver_request_total[5m])) by (instance) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+    - alert: APIServerHighLatency
+      annotations:
+        description: The API server {{ $labels.instance }} has a 99th percentile latency of {{ $value }}s for {{ $labels.verb }} {{ $labels.resource }}.
+        summary: API server has high latency
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(apiserver_request_duration_seconds_bucket{verb!~"WATCH|CONNECT"}[5m])) by (le, instance, verb, resource)
+        ) > 4
+      for: 10m
+      labels:
+        severity: warning

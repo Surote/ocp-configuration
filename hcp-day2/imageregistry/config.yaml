@@ -1,0 +1,19 @@
+apiVersion: imageregistry.operator.openshift.io/v1
+kind: Config
+metadata:
+  name: cluster
+spec:
+  managementState: Managed
+  replicas: 1
+  defaultRoute: true
+  logLevel: Normal
+  storage:
+    pvc:
+      claim: ""
+  requests:
+    read:
+      maxRunning: 32
+      maxInQueue: 64
+    write:
+      maxRunning: 8
+      maxInQueue: 32
