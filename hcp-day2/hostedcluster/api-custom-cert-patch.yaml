@@ -1,0 +1,26 @@
+# Patch to add a custom TLS certificate to the API server of an existing HostedCluster.
+# This is mutable — can be applied after cluster creation.
+#
+# Prerequisites:
+#   1. Create the TLS secret (api-custom-cert-secret.yaml) in the clusters namespace.
+#   2. Ensure DNS resolves api.<CLUSTER_NAME>.<BASE_DOMAIN> to the API server LoadBalancer/NodePort IP.
+#   3. The cert SAN must include the custom FQDN. Do NOT include api-int.* in the SAN
+#      or it will conflict with the internally managed certificate.
+#
+# Apply with:
+#   oc patch hostedcluster <CLUSTER_NAME> -n clusters --type=merge \
+#     --patch-file api-custom-cert-patch.yaml
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: <CLUSTER_NAME>
+  namespace: clusters
+spec:
+  configuration:
+    apiServer:
+      servingCerts:
+        namedCertificates:
+        - names:
+          - api.<CLUSTER_NAME>.<BASE_DOMAIN>
+          servingCertificate:
+            name: api-custom-cert

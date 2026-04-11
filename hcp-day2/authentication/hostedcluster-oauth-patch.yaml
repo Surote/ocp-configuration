@@ -1,0 +1,32 @@
+# Patch to add HTPasswd identity provider to an existing HostedCluster.
+# This is mutable — can be applied after cluster creation.
+#
+# Prerequisites:
+#   1. Create htpasswd-secret in the clusters namespace (see htpasswd-secret.yaml).
+#
+# NOTE: Adding an IDP disables the default kubeadmin password.
+#       Ensure your users exist in the htpasswd file before applying.
+#
+# Apply with:
+#   oc patch hostedcluster <CLUSTER_NAME> -n clusters --type=merge \
+#     --patch-file hostedcluster-oauth-patch.yaml
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: <CLUSTER_NAME>
+  namespace: clusters
+spec:
+  configuration:
+    oauth:
+      identityProviders:
+      - name: htpasswd-idp
+        type: HTPasswd
+        mappingMethod: claim
+        htpasswd:
+          fileData:
+            name: htpasswd-secret
+      tokenConfig:
+        accessTokenMaxAgeSeconds: 86400
+        accessTokenInactivityTimeout: 0s
+    secretRefs:
+    - name: htpasswd-secret

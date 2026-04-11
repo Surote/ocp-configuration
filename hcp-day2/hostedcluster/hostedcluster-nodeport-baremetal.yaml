@@ -1,0 +1,65 @@
+# Alternative: NodePort publishing strategy for environments without MetalLB
+# on the management cluster. APIServer is exposed on a specific node IP and port.
+# spec.services is IMMUTABLE after creation.
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: <CLUSTER_NAME>
+  namespace: clusters
+spec:
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:<OCP_VERSION>-x86_64
+  platform:
+    type: Agent
+    agent:
+      agentNamespace: <AGENT_NAMESPACE>
+  dns:
+    baseDomain: <BASE_DOMAIN>
+  pullSecret:
+    name: <PULL_SECRET_NAME>
+  sshKey:
+    name: <SSH_KEY_SECRET_NAME>
+  infraID: <INFRA_ID>
+  networking:
+    clusterNetwork:
+    - cidr: 10.132.0.0/14
+    serviceNetwork:
+    - cidr: 172.31.0.0/16
+    networkType: OVNKubernetes
+  # NodePort: point all services at a reachable management-cluster node IP
+  services:
+  - service: APIServer
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: <MANAGEMENT_NODE_IP>
+        port: 6443
+  - service: OAuthServer
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: <MANAGEMENT_NODE_IP>
+  - service: Konnectivity
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: <MANAGEMENT_NODE_IP>
+  - service: Ignition
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: <MANAGEMENT_NODE_IP>
+  - service: OVNSbDb
+    servicePublishingStrategy:
+      type: NodePort
+      nodePort:
+        address: <MANAGEMENT_NODE_IP>
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: 8Gi
+        type: PersistentVolume
+    managementType: Managed
+  controllerAvailabilityPolicy: HighlyAvailable
+  infrastructureAvailabilityPolicy: HighlyAvailable

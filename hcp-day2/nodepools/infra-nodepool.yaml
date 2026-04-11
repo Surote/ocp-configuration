@@ -1,0 +1,25 @@
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: <CLUSTER_NAME>-infra
+  namespace: clusters
+spec:
+  clusterName: <CLUSTER_NAME>
+  replicas: 2
+  management:
+    autoRepair: true
+    upgradeType: Replace
+  platform:
+    type: Agent
+    agent:
+      agentLabelSelector:
+        matchLabels:
+          infraNode: "true"
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:<OCP_VERSION>-x86_64
+  nodeLabels:
+    node-role.kubernetes.io/infra: ""
+  taints:
+  - key: node-role.kubernetes.io/infra
+    effect: NoSchedule
+    value: ""

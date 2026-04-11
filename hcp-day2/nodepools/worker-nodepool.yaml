@@ -1,0 +1,18 @@
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: <CLUSTER_NAME>-worker
+  namespace: clusters
+spec:
+  clusterName: <CLUSTER_NAME>
+  replicas: 3
+  management:
+    autoRepair: true
+    upgradeType: Replace
+  platform:
+    type: Agent
+    agent:
+      agentLabelSelector:
+        matchLabels: {}
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:<OCP_VERSION>-x86_64

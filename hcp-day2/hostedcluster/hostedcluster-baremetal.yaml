@@ -1,0 +1,56 @@
+# Reference HostedCluster CR for bare-metal Agent platform.
+# spec.services is IMMUTABLE after creation — set the correct strategy before deploying.
+# Replace all <PLACEHOLDER> values before applying.
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: <CLUSTER_NAME>
+  namespace: clusters
+spec:
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:<OCP_VERSION>-x86_64
+  platform:
+    type: Agent
+    agent:
+      agentNamespace: <AGENT_NAMESPACE>
+  dns:
+    baseDomain: <BASE_DOMAIN>
+  pullSecret:
+    name: <PULL_SECRET_NAME>
+  sshKey:
+    name: <SSH_KEY_SECRET_NAME>
+  infraID: <INFRA_ID>
+  networking:
+    clusterNetwork:
+    - cidr: 10.132.0.0/14
+    serviceNetwork:
+    - cidr: 172.31.0.0/16
+    networkType: OVNKubernetes
+  # IMMUTABLE — decide NodePort vs LoadBalancer before first apply
+  services:
+  - service: APIServer
+    servicePublishingStrategy:
+      type: LoadBalancer
+      loadBalancer:
+        hostname: api.<CLUSTER_NAME>.<BASE_DOMAIN>
+  - service: OAuthServer
+    servicePublishingStrategy:
+      type: Route
+  - service: Konnectivity
+    servicePublishingStrategy:
+      type: Route
+  - service: Ignition
+    servicePublishingStrategy:
+      type: Route
+  - service: OVNSbDb
+    servicePublishingStrategy:
+      type: Route
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: 8Gi
+        type: PersistentVolume
+    managementType: Managed
+  controllerAvailabilityPolicy: HighlyAvailable
+  infrastructureAvailabilityPolicy: HighlyAvailable
