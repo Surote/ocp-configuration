@@ -1,0 +1,46 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: bond-vlan-ipv4-dns
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  desiredState:
+    interfaces:
+    - name: bond3
+      type: bond
+      state: up
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      link-aggregation:
+        mode: 802.3ad
+        options:
+          miimon: "100"
+          lacp_rate: fast
+          xmit_hash_policy: layer3+4
+        port:
+        - ens9
+        - ens10
+    - name: bond3.100
+      type: vlan
+      state: up
+      vlan:
+        base-iface: bond3
+        id: 100
+      ipv4:
+        enabled: true
+        dhcp: false
+        address:
+        - ip: 192.168.100.10
+          prefix-length: 24
+      ipv6:
+        enabled: false
+    dns-resolver:
+      config:
+        server:
+        - 192.168.100.1
+        - 8.8.8.8
+        search:
+        - lab.rhdemo.local

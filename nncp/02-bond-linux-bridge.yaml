@@ -1,0 +1,38 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: bond-linux-bridge
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  desiredState:
+    interfaces:
+    - name: bond2
+      type: bond
+      state: up
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      link-aggregation:
+        mode: 802.3ad
+        options:
+          miimon: "100"
+          lacp_rate: fast
+          xmit_hash_policy: layer3+4
+        port:
+        - ens7
+        - ens8
+    - name: br1
+      type: linux-bridge
+      state: up
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      bridge:
+        options:
+          stp:
+            enabled: false
+        port:
+        - name: bond2
