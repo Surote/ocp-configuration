@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-server-sa
+  namespace: nfs-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+  namespace: nfs-server
+  labels:
+    app: nfs-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      serviceAccountName: nfs-server-sa
+      securityContext:
+        fsGroup: 107
+      containers:
+        - name: nfs-server
+          image: quay.io/rh_ee_swongpai/nfs-server:latest
+          imagePullPolicy: Always
+          ports:
+            - name: nfs
+              containerPort: 2049
+              protocol: TCP
+            - name: rpcbind
+              containerPort: 111
+              protocol: TCP
+            - name: mountd
+              containerPort: 20048
+              protocol: TCP
+          env:
+            - name: NFS_EXPORT_DIR
+              value: /exports
+            - name: NFS_EXPORT_OPTS
+              value: "*(rw,sync,insecure,no_subtree_check,no_root_squash,all_squash,anonuid=0,anongid=107,fsid=0)"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: nfs-data
+              mountPath: /exports
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: nfs-data
+          persistentVolumeClaim:
+            claimName: nfs-server-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server
+  namespace: nfs-server
+  labels:
+    app: nfs-server
+spec:
+  selector:
+    app: nfs-server
+  ports:
+    - name: nfs
+      port: 2049
+      targetPort: 2049
+      protocol: TCP
+    - name: rpcbind
+      port: 111
+      targetPort: 111
+      protocol: TCP
+    - name: mountd
+      port: 20048
+      targetPort: 20048
+      protocol: TCP
+  type: ClusterIP
