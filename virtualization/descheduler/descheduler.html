@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Descheduler · OpenShift Virtualization</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --red:    #dc2626; --red-lt:    #fee2e2; --red-dk:    #991b1b;
+  --green:  #16a34a; --green-lt:  #dcfce7; --green-dk:  #14532d;
+  --blue:   #2563eb; --blue-lt:   #dbeafe; --blue-dk:   #1e3a8a;
+  --purple: #7c3aed; --purple-lt: #ede9fe; --purple-dk: #4c1d95;
+  --amber:  #d97706; --amber-lt:  #fef3c7; --amber-dk:  #78350f;
+  --slate:  #475569; --slate-lt:  #f1f5f9;
+  --ocp:    #ee0000;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "SF Mono", Monaco, Consolas, "Courier New", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: #f8fafc;
+  color: #0f172a;
+  line-height: 1.6;
+}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.site-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+  color: white;
+  padding: 2.5rem 2rem 2rem;
+}
+.site-header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+.site-header p  { opacity: 0.75; margin-top: 0.4rem; font-size: 0.95rem; }
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 0.4rem;
+  margin-top: 0.8rem;
+  vertical-align: middle;
+}
+.b-blue   { background: rgba(96,165,250,0.25); color: #bfdbfe; border: 1px solid rgba(96,165,250,0.4); }
+.b-green  { background: rgba(74,222,128,0.2);  color: #bbf7d0; border: 1px solid rgba(74,222,128,0.3); }
+.b-orange { background: rgba(251,146,60,0.2);  color: #fed7aa; border: 1px solid rgba(251,146,60,0.3); }
+.b-red    { background: rgba(248,113,113,0.2); color: #fecaca; border: 1px solid rgba(248,113,113,0.3); }
+
+/* ─── LAYOUT ─────────────────────────────────────────── */
+.main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+h2 { font-size: 1.3rem; font-weight: 700; color: #1e3a8a; margin: 2.5rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 2px solid #e2e8f0; }
+h3 { font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 0.4rem; }
+p  { color: #374151; }
+a  { color: var(--blue); }
+code {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: var(--mono);
+}
+pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1.1rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.83em;
+  font-family: var(--mono);
+  line-height: 1.6;
+  margin: 0.5rem 0;
+}
+pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+
+/* ─── CALLOUT ─────────────────────────────────────────── */
+.callout {
+  display: flex; gap: 0.8rem; align-items: flex-start;
+  padding: 0.9rem 1.1rem;
+  border-radius: 8px;
+  margin: 0.8rem 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.callout-info  { background: var(--blue-lt);   border: 1px solid #93c5fd; }
+.callout-warn  { background: var(--red-lt);    border: 1px solid #fca5a5; }
+.callout-amber { background: var(--amber-lt);  border: 1px solid #fcd34d; }
+.callout strong { display: block; margin-bottom: 0.15rem; }
+
+/* ─── TABLE ─────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; margin: 0.8rem 0; }
+table { border-collapse: collapse; width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+th, td { padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+th { background: #1e3a8a; color: white; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.03em; text-transform: uppercase; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+
+/* ─── TABS ─────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  background: white;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+.tab {
+  padding: 0.7rem 1.2rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  border-radius: 0;
+  font-family: var(--font);
+}
+.tab:hover  { color: var(--blue); background: #f8fafc; }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); background: white; }
+.tab-body { background: white; border: 1px solid #e2e8f0; border-radius: 0 0 12px 12px; padding: 1.5rem; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── DIAGRAM CARD ─────────────────────────────────────────── */
+.diag-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+.diag-card .mermaid { display: flex; justify-content: center; }
+
+/* ─── SWIMLANE ─────────────────────────────────────────── */
+#swimlane-wrap { position: relative; }
+#swimlane-svg  { width: 100%; max-width: 820px; display: block; margin: 0 auto; }
+.step-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0 0.5rem;
+}
+.step-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: white;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+.step-btn:hover  { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
+.step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.step-label {
+  font-size: 0.88rem;
+  color: #64748b;
+  min-width: 90px;
+  text-align: center;
+  font-weight: 600;
+}
+.step-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #475569;
+  background: var(--blue-lt);
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem auto;
+  max-width: 600px;
+  min-height: 2.2rem;
+  transition: all 0.2s;
+}
+.play-btn {
+  padding: 0.4rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--blue);
+  color: white;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s;
+}
+.play-btn:hover { background: var(--blue-dk); }
+
+/* ─── LEGEND ─────────────────────────────────────────── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  margin: 0.8rem 0 0.3rem;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8rem; color: #374151;
+}
+.legend-dot {
+  width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* ─── DETAILS ─────────────────────────────────────────── */
+details {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin: 0.6rem 0;
+  overflow: hidden;
+}
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #1e3a8a;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+summary::after { content: '▾'; transition: transform 0.2s; }
+details[open] summary::after { transform: rotate(180deg); }
+details[open] summary { border-bottom: 1px solid #e2e8f0; }
+details > div { padding: 1rem; }
+
+/* ─── GRID ─────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.8rem 0; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+.feature-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  border-top: 3px solid var(--blue);
+}
+.feature-card.green { border-top-color: var(--green); }
+.feature-card h4    { font-size: 0.95rem; margin-bottom: 0.4rem; color: #0f172a; }
+.feature-card ul    { font-size: 0.85rem; color: #374151; padding-left: 1.2rem; }
+.feature-card li    { margin-bottom: 0.2rem; }
+
+/* ─── MERMAID OVERRIDES ─────────────────────────────────────────── */
+.mermaid svg {
+  max-width: 100%;
+  border-radius: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════ -->
+<header class="site-header">
+  <h1>Descheduler for OpenShift Virtualization</h1>
+  <p>Automated VM rebalancing via live migration — no downtime, no manual intervention</p>
+  <div>
+    <span class="badge b-blue">OpenShift 4.17+</span>
+    <span class="badge b-green">KubeVirt</span>
+    <span class="badge b-orange">Live Migration</span>
+    <span class="badge b-red">LongLifecycle</span>
+    <span class="badge b-blue">KubeVirtRelieveAndMigrate</span>
+  </div>
+</header>
+
+<div class="main">
+
+<!-- ══════════════════════════════════════════════════
+     OVERVIEW
+══════════════════════════════════════════════════ -->
+<h2>Overview</h2>
+<p>
+  The <strong>Kube Descheduler Operator</strong> periodically evicts pods that violate placement rules or
+  sit on overutilized nodes. For VMs, eviction does <em>not</em> kill the workload — KubeVirt intercepts
+  and converts it into a <strong>live migration</strong>.
+</p>
+
+<div class="callout callout-info" style="margin-top:1rem">
+  <span class="callout-icon">ℹ️</span>
+  <div><strong>Key mechanism</strong>
+  Descheduler issues a standard pod eviction. KubeVirt's PodDisruptionBudget intercepts it
+  and creates a <code>VirtualMachineInstanceMigration</code> CR. The VM moves to a healthy node with &lt;1s interruption.</div>
+</div>
+
+<div class="grid-2" style="margin-top:1.2rem">
+  <div class="feature-card">
+    <h4>LongLifecycle</h4>
+    <ul>
+      <li>Signal: CPU/Memory <strong>requests</strong></li>
+      <li>Interval: every 1800s (30 min)</li>
+      <li>Threshold: &lt;20% under / &gt;50% over</li>
+      <li>Simple, broadly compatible</li>
+      <li>Cannot detect noisy neighbours</li>
+    </ul>
+  </div>
+  <div class="feature-card green">
+    <h4>KubeVirtRelieveAndMigrate</h4>
+    <ul>
+      <li>Signal: <strong>PSI</strong> (Pressure Stall Info)</li>
+      <li>Interval: every 60s</li>
+      <li>Detects actual CPU/memory/IO contention</li>
+      <li>Taints hot nodes → steers new VMs away</li>
+      <li>Background eviction prevents oscillation</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PREREQUISITES
+══════════════════════════════════════════════════ -->
+<h2>Prerequisites</h2>
+<ul style="padding-left:1.3rem; color:#374151; font-size:0.93rem; line-height:2">
+  <li>Install <strong>Kube Descheduler Operator</strong> → namespace <code>openshift-kube-descheduler-operator</code></li>
+  <li>VM <code>spec.template.spec.evictionStrategy: LiveMigrate</code></li>
+  <li>VM <code>spec.runStrategy: Always</code> or <code>RerunOnFailure</code></li>
+  <li>VM must be migratable (shared RWX storage, no host devices, no hugepages)</li>
+  <li><strong>For KubeVirtRelieveAndMigrate only:</strong> PSI metrics enabled in kernel via <code>MachineConfig</code> and exported via Prometheus</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════
+     PROFILE COMPARISON
+══════════════════════════════════════════════════ -->
+<h2>Profile Comparison</h2>
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Profile</th><th>OCP Version</th><th>Signal</th><th>Interval</th><th>VM-Aware</th><th>Use Case</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>DevPreviewLongLifecycle</code></td>
+      <td style="color:#64748b">&lt; 4.17 (deprecated)</td>
+      <td>Requests</td><td>1800s</td><td>Yes</td>
+      <td style="color:#64748b">Old TechPreview name</td>
+    </tr>
+    <tr>
+      <td><code>LongLifecycle</code></td>
+      <td>4.17+</td>
+      <td>CPU/Mem requests</td><td>1800s</td><td>Yes</td>
+      <td>Baseline VM rebalancing</td>
+    </tr>
+    <tr>
+      <td><code>KubeVirtRelieveAndMigrate</code></td>
+      <td>4.18+</td>
+      <td>PSI (actual load)</td><td>60s</td><td>Yes</td>
+      <td>Load-aware, noisy-neighbour</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     INTERACTIVE DIAGRAMS
+══════════════════════════════════════════════════ -->
+<h2>Interactive Flow Diagrams</h2>
+
+<div class="tab-bar">
+  <button class="tab active"  data-tab="seq">🔄 Eviction → Migration</button>
+  <button class="tab"         data-tab="ll">⚖️ LongLifecycle</button>
+  <button class="tab"         data-tab="kvrm">📊 KubeVirtRelieveAndMigrate</button>
+  <button class="tab"         data-tab="strat">🔀 EvictionStrategy</button>
+  <button class="tab"         data-tab="pick">🤔 Which Profile?</button>
+</div>
+
+<div class="tab-body">
+
+  <!-- ── TAB: Sequence ── -->
+  <div class="tab-panel active" id="seq">
+    <h3>End-to-End: Pod Eviction → Live Migration</h3>
+    <p style="margin:0.4rem 0 0.8rem; font-size:0.9rem; color:#64748b">
+      Step through each phase. Click <strong>Next</strong> or press <strong>Play</strong> to animate.
+    </p>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8"></div> Descheduler</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0369a1"></div> Kube API</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> KubeVirt</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c2410c"></div> Source Node</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#15803d"></div> Target Node</div>
+    </div>
+
+    <div id="swimlane-wrap">
+      <svg id="swimlane-svg" viewBox="0 0 820 700" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif"></svg>
+    </div>
+
+    <div class="step-controls">
+      <button class="step-btn" id="btn-prev" disabled>← Prev</button>
+      <span class="step-label" id="step-label">Step 0 / 12</span>
+      <button class="step-btn" id="btn-next">Next →</button>
+      <button class="play-btn" id="btn-play">▶ Play</button>
+    </div>
+    <div class="step-note" id="step-note">Click Next or Play to walk through the eviction lifecycle.</div>
+  </div>
+
+  <!-- ── TAB: LongLifecycle ── -->
+  <div class="tab-panel" id="ll">
+    <h3>Profile: LongLifecycle</h3>
+    <p style="margin:0.3rem 0 0.8rem; font-size:0.9rem; color:#64748b">
+      Balances nodes based on <strong>resource requests</strong> (CPU + memory).
+      Threshold: &lt;20% = underutilized, &gt;50% = overutilized.
+    </p>
+    <div class="callout callout-amber" style="font-size:0.87rem">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Limitation</strong> Uses <code>requests</code> only — a VM requesting 4 CPU at 1% real usage counts the same as one at 99%.</div>
+    </div>
+    <div class="diag-card">
+      <div class="mermaid" id="mm-ll">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#dbeafe","primaryTextColor":"#1e3a8a","primaryBorderColor":"#3b82f6","lineColor":"#6b7280","edgeLabelBackground":"#f8fafc","fontSize":"14px"}}}%%
+flowchart TD
+    Start(["🕐 Descheduler tick\nevery 1800s"]):::start --> Read["📋 Read node CPU + Memory\nREQUEST sums for all nodes"]:::action
+
+    Read --> Classify{"📊 Classify\neach node"}:::decision
+
+    Classify -->|"requests &lt; 20%"| Under["🟢 Underutilized\nmigration target"]:::good
+    Classify -->|"20% – 50%"| OK["✅ Appropriate\nskip node"]:::ok
+    Classify -->|"requests &gt; 50%"| Over["🔴 Overutilized\nevict candidate"]:::bad
+
+    Over --> Pick["🎯 Pick pod to evict\nskip: DaemonSet, Critical, System"]:::action
+    Pick --> IsVM{"🖥️ Is pod a\nvirt-launcher?"}:::decision
+
+    IsVM -->|"No – regular pod"| Kill["⛔ Terminate pod\nscheduler reschedules"]:::stop
+    IsVM -->|"Yes – VM pod"| Evict["📤 Eviction API call"]:::action
+
+    Evict --> PDB["🛡️ KubeVirt PDB\nblocks direct delete"]:::purple
+    PDB --> VMIM["🔁 Create\nVirtualMachineInstanceMigration"]:::purple
+    VMIM --> Migrate["✈️ LIVE MIGRATION\nmemory + CPU + disk handover\ndowntime &lt;1s"]:::migrate
+    Migrate --> Done(["✅ VM running on\nunderutilized node"]):::done
+
+    Under -. "migration\ntarget" .-> Migrate
+
+    classDef start   fill:#1e3a8a,stroke:#1e3a8a,color:#fff,rx:20
+    classDef action  fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef good    fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:600
+    classDef bad     fill:#fee2e2,stroke:#dc2626,color:#991b1b,font-weight:600
+    classDef ok      fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    classDef stop    fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    classDef purple  fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef migrate fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,font-weight:700
+    classDef done    fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: KubeVirtRelieveAndMigrate ── -->
+  <div class="tab-panel" id="kvrm">
+    <h3>Profile: KubeVirtRelieveAndMigrate</h3>
+    <p style="margin:0.3rem 0 0.8rem; font-size:0.9rem; color:#64748b">
+      Uses <strong>Pressure Stall Information (PSI)</strong> kernel metrics via Prometheus.
+      Detects <em>actual</em> CPU, memory, and I/O contention. Runs every 60s.
+    </p>
+    <div class="callout callout-info" style="font-size:0.87rem">
+      <span class="callout-icon">💡</span>
+      <div><strong>PSI = Pressure Stall Information</strong> — Linux kernel metric measuring % of time tasks are stalled waiting for CPU, memory, or IO. Exposed via <code>/proc/pressure/</code> and exported to Prometheus.</div>
+    </div>
+    <div class="diag-card">
+      <div class="mermaid" id="mm-kvrm">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#dbeafe","primaryTextColor":"#1e3a8a","primaryBorderColor":"#3b82f6","lineColor":"#6b7280","edgeLabelBackground":"#f8fafc","fontSize":"14px"}}}%%
+flowchart TD
+    Start(["🕐 Descheduler tick\nevery 60s"]):::start --> PSI["📡 Pull PSI metrics\nfrom Prometheus"]:::action
+
+    PSI --> Metrics["CPU stall %\nMemory pressure\nI/O pressure"]:::info
+
+    Metrics --> Class{"📊 Classify nodes\nby PSI score"}:::decision
+
+    Class -->|"PSI low"| Low["🟢 Underutilized\nuntainted — migration target"]:::good
+    Class -->|"PSI normal"| Mid["✅ Appropriate\nskip"]:::ok
+    Class -->|"PSI high"| High["🔴 Overutilized\nreal contention detected"]:::bad
+
+    High --> Taint["🔶 Taint node\nPreferNoSchedule\nnew VMs avoid this node"]:::amber
+    Taint --> Pick["🎯 Pick highest-pressure\nvirt-launcher pod"]:::action
+
+    Pick --> BG["⚡ Background eviction\ndevEnableEvictionsInBackground\ndoes not block descheduler loop"]:::action
+
+    BG --> VMIM["🔁 VirtualMachineInstanceMigration"]:::purple
+
+    Low --> Target{"🗺️ Pick\ntarget node"}
+    VMIM --> Target
+
+    Target --> Migrate["✈️ LIVE MIGRATION\nmemory + CPU + disk"]:::migrate
+
+    Migrate --> Recheck{"🔁 Next tick:\npressure dropped?"}:::decision
+    Recheck -->|"Yes"| Untaint["🟢 Remove\nPreferNoSchedule taint"]:::good
+    Recheck -->|"No — still hot"| Pick
+
+    Untaint --> Start
+
+    classDef start   fill:#1e3a8a,stroke:#1e3a8a,color:#fff,rx:20
+    classDef action  fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    classDef info    fill:#f0fdf4,stroke:#86efac,color:#14532d
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef good    fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:600
+    classDef bad     fill:#fee2e2,stroke:#dc2626,color:#991b1b,font-weight:600
+    classDef ok      fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    classDef amber   fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:600
+    classDef purple  fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef migrate fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,font-weight:700
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: EvictionStrategy ── -->
+  <div class="tab-panel" id="strat">
+    <h3>Per-VM Eviction Decision — <code>evictionStrategy</code></h3>
+    <p style="margin:0.3rem 0 0.8rem; font-size:0.9rem; color:#64748b">
+      How KubeVirt decides what to do when a descheduler (or any controller) requests pod eviction.
+    </p>
+    <div class="diag-card">
+      <div class="mermaid" id="mm-strat">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#dbeafe","primaryTextColor":"#1e3a8a","primaryBorderColor":"#3b82f6","lineColor":"#6b7280","edgeLabelBackground":"#f8fafc","fontSize":"14px"}}}%%
+flowchart LR
+    Req["📤 Eviction\nrequest received"]:::action --> T{"Pod\ntype?"}:::decision
+
+    T -->|"regular pod"| K["Terminate\nscheduler reschedules"]:::stop
+    T -->|"virt-launcher"| ES{"eviction\nStrategy?"}:::decision
+
+    ES -->|"LiveMigrate"| LM["✈️ Live migrate\nalways"]:::good
+    ES -->|"LiveMigrateIfPossible"| Q{"VM\nmigratable?"}:::decision
+    ES -->|"External"| EX["🔧 Set EvacuationNodeName\nexternal controller acts"]:::info
+    ES -->|"None"| ST["⛔ VM stops\nno migration"]:::bad
+
+    Q -->|"Yes\nshared storage, no host dev"| LM
+    Q -->|"No\nlocal storage / host device"| ST
+
+    classDef action   fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a,font-weight:600
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef good     fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+    classDef bad      fill:#fee2e2,stroke:#dc2626,color:#991b1b,font-weight:700
+    classDef stop     fill:#f1f5f9,stroke:#94a3b8,color:#475569
+    classDef info     fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+      </div>
+    </div>
+    <div class="tbl-wrap" style="margin-top:1rem">
+    <table>
+      <thead><tr><th>Strategy</th><th>Behavior</th><th>Use When</th></tr></thead>
+      <tbody>
+        <tr><td><code>LiveMigrate</code></td><td>Always live migrate — fails if not migratable</td><td>All VMs have shared RWX storage</td></tr>
+        <tr><td><code>LiveMigrateIfPossible</code></td><td>Migrate if possible, otherwise stop VM</td><td>Mixed VM types</td></tr>
+        <tr><td><code>External</code></td><td>Sets <code>EvacuationNodeName</code> for external handler</td><td>Custom remediation controllers</td></tr>
+        <tr><td><code>None</code></td><td>VM stops — no migration attempted</td><td>Stateless VMs, dev environments</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ── TAB: Which Profile ── -->
+  <div class="tab-panel" id="pick">
+    <h3>Which Profile Should I Use?</h3>
+    <div class="diag-card">
+      <div class="mermaid" id="mm-pick">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#dbeafe","primaryTextColor":"#1e3a8a","primaryBorderColor":"#3b82f6","lineColor":"#6b7280","edgeLabelBackground":"#f8fafc","fontSize":"14px"}}}%%
+flowchart TD
+    Q1{"VM workloads\non cluster?"}:::decision
+
+    Q1 -->|"No"| Other["Use other profiles\nAffinityAndTaints\nLifecycleAndUtilization"]:::stop
+    Q1 -->|"Yes"| Q2{"OCP version?"}:::decision
+
+    Q2 -->|"4.17 – 4.17"| LL["LongLifecycle"]:::ll
+    Q2 -->|"4.18+"| Q3{"PSI metrics\nenabled in kernel?"}:::decision
+
+    Q3 -->|"No — not enabled"| LL
+    Q3 -->|"Yes"| Q4{"Experiencing\nnoisy-neighbour\nor hot-node issues?"}:::decision
+
+    Q4 -->|"No — simple rebalance"| LL
+    Q4 -->|"Yes — real contention"| KVRM["KubeVirtRelieveAndMigrate"]:::kvrm
+
+    LL --> LLF["• Request-based signal\n• 30 min interval\n• Simple config\n• No PSI needed"]:::llfeat
+    KVRM --> KF["• PSI actual load signal\n• 60s interval\n• Taint-based steering\n• Background eviction\n• No oscillation"]:::kvfeat
+
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef ll       fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a,font-weight:700,font-size:15px
+    classDef kvrm     fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700,font-size:15px
+    classDef llfeat   fill:#eff6ff,stroke:#bfdbfe,color:#1e3a8a,text-align:left
+    classDef kvfeat   fill:#f0fdf4,stroke:#bbf7d0,color:#14532d,text-align:left
+    classDef stop     fill:#f1f5f9,stroke:#94a3b8,color:#475569
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-body -->
+
+<!-- ══════════════════════════════════════════════════
+     CONFIGURATION
+══════════════════════════════════════════════════ -->
+<h2>Configuration</h2>
+
+<details open>
+<summary>LongLifecycle — KubeDescheduler CR</summary>
+<div>
+<pre><code>apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  deschedulingIntervalSeconds: 1800
+  mode: Predictive         # Predictive = dry-run; Automatic = live evictions
+  profiles:
+    - LongLifecycle
+  profileCustomizations:
+    devEnableEvictionsInBackground: true</code></pre>
+</div>
+</details>
+
+<details>
+<summary>KubeVirtRelieveAndMigrate — KubeDescheduler CR</summary>
+<div>
+<pre><code>apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  deschedulingIntervalSeconds: 60
+  mode: Automatic
+  profiles:
+    - KubeVirtRelieveAndMigrate
+  profileCustomizations:
+    devEnableEvictionsInBackground: true
+    devLowNodeUtilizationThresholds: Medium</code></pre>
+</div>
+</details>
+
+<details>
+<summary>Operator Subscription</summary>
+<div>
+<pre><code>apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-kube-descheduler-operator
+  namespace: openshift-kube-descheduler-operator
+spec:
+  channel: stable
+  name: cluster-kube-descheduler-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Manual</code></pre>
+</div>
+</details>
+
+<!-- ══════════════════════════════════════════════════
+     THRESHOLDS + EVICT PROFILES
+══════════════════════════════════════════════════ -->
+<h2>Thresholds &amp; Eviction Profiles Explained</h2>
+
+<p style="font-size:0.92rem;color:#374151;margin-bottom:1rem">
+  Two settings that most VM deployments get wrong: <code>devLowNodeUtilizationThresholds</code> controls
+  <em>when</em> to evict. <code>EvictPodsWithPVC</code> + <code>EvictPodsWithLocalStorage</code> control
+  <em>whether</em> virt-launcher pods are even eligible for eviction.
+</p>
+
+<!-- devLowNodeUtilization -->
+<h3 style="margin-top:1.2rem;margin-bottom:0.5rem;color:#1e3a8a">devLowNodeUtilizationThresholds</h3>
+<p style="font-size:0.88rem;color:#374151;margin-bottom:0.8rem">
+  Sets the underutilized / target threshold pair for <code>LowNodeUtilization</code> strategy.
+  Nodes <strong>below</strong> underutilized = migration target. Nodes <strong>above</strong> target = evict candidate. Nodes between = untouched.
+</p>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Value</th><th>Underutilized (target)</th><th>Overutilized (evict from)</th><th>Use When</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>Low</code></td>
+      <td>&lt; 10%</td>
+      <td>&gt; 30%</td>
+      <td>Stable cluster, only correct extreme imbalance</td>
+    </tr>
+    <tr>
+      <td><code>Medium</code> <span style="font-size:0.75rem;background:#dcfce7;color:#14532d;padding:1px 6px;border-radius:9px;margin-left:4px">default</span></td>
+      <td>&lt; 20%</td>
+      <td>&gt; 50%</td>
+      <td>Most clusters — balanced rebalancing</td>
+    </tr>
+    <tr>
+      <td><code>High</code></td>
+      <td>&lt; 40%</td>
+      <td>&gt; 70%</td>
+      <td>Nodes consistently imbalanced but rarely hit 50%</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="diag-card" style="margin-top:0.8rem">
+  <p style="font-size:0.8rem;font-weight:700;color:#64748b;margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.05em">Node utilisation — Medium threshold example</p>
+  <svg viewBox="0 0 680 90" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:680px;display:block;margin:0 auto" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <!-- axis line -->
+    <line x1="30" y1="55" x2="650" y2="55" stroke="#94a3b8" stroke-width="1.5"/>
+    <!-- 0% -->
+    <text x="30" y="72" text-anchor="middle" font-size="11" fill="#64748b">0%</text>
+    <!-- 20% underutilized -->
+    <line x1="150" y1="48" x2="150" y2="62" stroke="#16a34a" stroke-width="2"/>
+    <text x="150" y="78" text-anchor="middle" font-size="11" fill="#16a34a">20%</text>
+    <text x="150" y="90" text-anchor="middle" font-size="10" fill="#16a34a">under</text>
+    <!-- 50% overutilized -->
+    <line x1="370" y1="48" x2="370" y2="62" stroke="#dc2626" stroke-width="2"/>
+    <text x="370" y="78" text-anchor="middle" font-size="11" fill="#dc2626">50%</text>
+    <text x="370" y="90" text-anchor="middle" font-size="10" fill="#dc2626">over</text>
+    <!-- 100% -->
+    <text x="648" y="72" text-anchor="middle" font-size="11" fill="#64748b">100%</text>
+    <!-- zone fills -->
+    <rect x="31" y="35" width="118" height="20" rx="3" fill="#dcfce7" opacity="0.8"/>
+    <text x="90" y="49" text-anchor="middle" font-size="11" font-weight="600" fill="#15803d">🟢 Migration target</text>
+    <rect x="151" y="35" width="218" height="20" rx="3" fill="#f1f5f9" opacity="0.8"/>
+    <text x="260" y="49" text-anchor="middle" font-size="11" fill="#475569">✅ Untouched</text>
+    <rect x="370" y="35" width="279" height="20" rx="3" fill="#fee2e2" opacity="0.8"/>
+    <text x="510" y="49" text-anchor="middle" font-size="11" font-weight="600" fill="#dc2626">🔴 Evict candidate</text>
+  </svg>
+</div>
+
+<!-- EvictPodsWithPVC + EvictPodsWithLocalStorage -->
+<h3 style="margin-top:1.8rem;margin-bottom:0.5rem;color:#1e3a8a">EvictPodsWithPVC + EvictPodsWithLocalStorage</h3>
+
+<div class="callout callout-warn" style="margin-bottom:0.8rem">
+  <span class="callout-icon">🚫</span>
+  <div><strong>DefaultEvictor blocks virt-launcher pods by default.</strong>
+  Without these profiles, descheduler silently skips all VM pods.
+  Error: <code>pod has local storage and is protected · pod with PVC is protected</code></div>
+</div>
+
+<p style="font-size:0.88rem;color:#374151;margin-bottom:0.8rem">
+  virt-launcher pods <em>always</em> carry both protected volume types:
+</p>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>virt-launcher component</th><th>Volume type</th><th>Blocked by default</th><th>Profile to unlock</th></tr></thead>
+  <tbody>
+    <tr><td>VM disk (DataVolume / PVC)</td><td>PersistentVolumeClaim</td><td>✅ Yes</td><td><code>EvictPodsWithPVC</code></td></tr>
+    <tr><td>Virtio socket directory</td><td>EmptyDir (local)</td><td>✅ Yes</td><td><code>EvictPodsWithLocalStorage</code></td></tr>
+    <tr><td>Cloud-init data</td><td>EmptyDir (local)</td><td>✅ Yes</td><td><code>EvictPodsWithLocalStorage</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="diag-card" style="margin-top:0.8rem">
+  <p style="font-size:0.8rem;font-weight:700;color:#64748b;margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.05em">DefaultEvictor filter chain</p>
+  <div class="mermaid" id="mm-evictor">
+%%{init:{"theme":"base","themeVariables":{"primaryColor":"#dbeafe","primaryTextColor":"#1e3a8a","primaryBorderColor":"#3b82f6","lineColor":"#6b7280","edgeLabelBackground":"#f8fafc","fontSize":"13px"}}}%%
+flowchart LR
+    Pod["virt-launcher pod\n• PVC: vm-disk\n• EmptyDir: virtio-sock\n• EmptyDir: cloud-init"]:::podnode
+
+    Pod --> C1{"Has PVC?"}:::decision
+    C1 -->|"Yes — no EvictPodsWithPVC"| BLK1["❌ BLOCKED\neviction denied"]:::bad
+    C1 -->|"Yes + EvictPodsWithPVC"| C2{"Has local\nstorage?"}:::decision
+    C2 -->|"Yes — no EvictPodsWithLocalStorage"| BLK2["❌ BLOCKED\neviction denied"]:::bad
+    C2 -->|"Yes + EvictPodsWithLocalStorage"| PASS["✅ PASS\neviction eligible"]:::good
+    PASS --> KV["KubeVirt PDB\n→ live migration"]:::purple
+
+    classDef podnode  fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef bad      fill:#fee2e2,stroke:#dc2626,color:#991b1b,font-weight:700
+    classDef good     fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+    classDef purple   fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+  </div>
+</div>
+
+<div class="callout callout-info" style="margin-top:0.8rem;font-size:0.87rem">
+  <span class="callout-icon">🔒</span>
+  <div><strong>Eviction ≠ data loss.</strong>
+  These profiles only remove DefaultEvictor's blanket block. The eviction still goes through KubeVirt PDB → live migration.
+  VM disk (PVC) stays on shared storage and is accessible from target node. EmptyDir is recreated on target.</div>
+</div>
+
+<div class="callout callout-warn" style="font-size:0.87rem">
+  <span class="callout-icon">⚠️</span>
+  <div><strong>Local-only storage (no shared backend).</strong>
+  If VM disk is on node-local storage (not Ceph / NFS / iSCSI), eviction passes but migration fails —
+  disk not accessible from target node. Use <code>evictionStrategy: LiveMigrateIfPossible</code> to handle gracefully.</div>
+</div>
+
+<h3 style="margin-top:1.2rem;margin-bottom:0.5rem;color:#1e3a8a">Complete VM-ready KubeDescheduler CR</h3>
+<details open>
+<summary>LongLifecycle — full config for VM workloads</summary>
+<div>
+<pre><code>apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  deschedulingIntervalSeconds: 1800
+  mode: Automatic
+  profiles:
+    - LongLifecycle
+    - EvictPodsWithPVC           # unlock virt-launcher PVC volume eviction
+    - EvictPodsWithLocalStorage  # unlock virt-launcher EmptyDir eviction
+  profileCustomizations:
+    devEnableEvictionsInBackground: true
+    devLowNodeUtilizationThresholds: Medium   # 20% under / 50% over</code></pre>
+</div>
+</details>
+
+<!-- ══════════════════════════════════════════════════
+     VM-ONLY SCOPING
+══════════════════════════════════════════════════ -->
+<h2>Scoping Descheduler to VMs Only</h2>
+<p style="font-size:0.92rem;color:#374151;margin-bottom:1rem">
+  By default, descheduler targets <em>any</em> eligible pod on overutilized nodes — including regular app pods.
+  Three options to restrict eviction to VM (<code>virt-launcher</code>) pods only.
+</p>
+
+<div class="tbl-wrap" style="margin-bottom:1.2rem">
+<table>
+  <thead><tr><th>Option</th><th>Mechanism</th><th>Best When</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>1. Namespace filter</strong></td>
+      <td>Only target listed namespaces</td>
+      <td>VMs live in dedicated namespaces</td>
+    </tr>
+    <tr>
+      <td><strong>2. Priority class</strong></td>
+      <td>Skip pods at or above priority threshold</td>
+      <td>VMs mixed with apps in same namespace</td>
+    </tr>
+    <tr>
+      <td><strong>3. Annotation opt-out</strong></td>
+      <td>Annotate regular pods to be skipped</td>
+      <td>Few apps to protect, many VM namespaces</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="tab-bar" style="margin-top:0">
+  <button class="tab active" data-tab="vmo-ns">Option 1 — Namespace Filter</button>
+  <button class="tab" data-tab="vmo-prio">Option 2 — Priority Class</button>
+  <button class="tab" data-tab="vmo-ann">Option 3 — Annotation</button>
+  <button class="tab" data-tab="vmo-combo">Combined (Recommended)</button>
+</div>
+
+<div class="tab-body" style="margin-bottom:1.5rem">
+
+  <div class="tab-panel active" id="vmo-ns">
+    <h3>Option 1 — Namespace Filter</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      Simplest approach. Descheduler ignores all pods outside listed namespaces.
+      Works cleanly when VMs are isolated in dedicated namespaces.
+    </p>
+    <div class="callout callout-info" style="font-size:0.87rem;margin-bottom:0.8rem">
+      <span class="callout-icon">💡</span>
+      <div>Best practice: create dedicated namespaces per VM project (e.g., <code>prod-vms</code>, <code>dev-vms</code>)
+      and list them here. Regular app namespaces are automatically excluded.</div>
+    </div>
+<pre><code>apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  deschedulingIntervalSeconds: 1800
+  mode: Automatic
+  profiles:
+    - LongLifecycle
+  profileCustomizations:
+    devEnableEvictionsInBackground: true
+    namespaces:
+      included:          # only these namespaces — all others ignored
+        - vm-workloads
+        - kubevirt-vms
+        - production-vms</code></pre>
+    <p style="font-size:0.88rem;color:#374151;margin-top:0.8rem">Alternatively, exclude specific namespaces and leave everything else targeted:</p>
+<pre><code>  profileCustomizations:
+    namespaces:
+      excluded:          # protect these — target everything else
+        - default
+        - production-apps
+        - monitoring</code></pre>
+  </div>
+
+  <div class="tab-panel" id="vmo-prio">
+    <h3>Option 2 — Priority Class Threshold</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      Descheduler skips pods at or above the threshold priority.
+      Assign regular apps a high priority class — descheduler leaves them alone and evicts only lower-priority virt-launcher pods.
+    </p>
+<pre><code># Step 1: Priority class for regular pods (protected — high value)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: regular-app-protected
+value: 1000000
+globalDefault: false
+description: "Regular app pods — protected from descheduler eviction"</code></pre>
+<pre><code># Step 2: Assign to regular Deployments
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      priorityClassName: regular-app-protected
+      containers: [...]</code></pre>
+<pre><code># Step 3: KubeDescheduler — skip pods at or above threshold
+apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  mode: Automatic
+  profiles:
+    - LongLifecycle
+  profileCustomizations:
+    devEnableEvictionsInBackground: true
+    thresholdPriorityClassName: regular-app-protected
+    # descheduler evicts ONLY pods with priority < regular-app-protected
+    # virt-launcher pods default priority = 0 → evictable</code></pre>
+    <div class="callout callout-amber" style="font-size:0.87rem;margin-top:0.8rem">
+      <span class="callout-icon">⚠️</span>
+      <div>virt-launcher pods inherit their VM's <code>priorityClassName</code>.
+      Ensure VMs do NOT use <code>regular-app-protected</code> or they will be skipped too.</div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="vmo-ann">
+    <h3>Option 3 — Annotation Opt-Out</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      Annotate regular pods/deployments you want protected. Descheduler respects the annotation and skips them.
+      Useful when only a few apps need protection.
+    </p>
+<pre><code># On individual Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    descheduler.alpha.kubernetes.io/evict: "false"   # descheduler skips this pod</code></pre>
+<pre><code># On Deployment (propagates to all pods)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  template:
+    metadata:
+      annotations:
+        descheduler.alpha.kubernetes.io/evict: "false"</code></pre>
+    <div class="callout callout-info" style="font-size:0.87rem;margin-top:0.8rem">
+      <span class="callout-icon">💡</span>
+      <div>Conversely, <code>"true"</code> forces eviction eligibility even on pods normally protected
+      (e.g., pods with local storage or PVCs). KubeVirt uses this to allow virt-launcher eviction.</div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="vmo-combo">
+    <h3>Combined — Namespace + Priority (Most Robust)</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      Namespace filter handles 95% of cases. Priority threshold handles edge cases where
+      non-VM pods land in VM namespaces (operators, sidecars, etc.).
+    </p>
+<pre><code>apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: cluster
+  namespace: openshift-kube-descheduler-operator
+spec:
+  managementState: Managed
+  deschedulingIntervalSeconds: 1800
+  mode: Automatic
+  profiles:
+    - LongLifecycle               # or KubeVirtRelieveAndMigrate
+  profileCustomizations:
+    devEnableEvictionsInBackground: true
+    namespaces:
+      included:
+        - vm-workloads             # only VM namespaces
+        - production-vms
+    thresholdPriorityClassName: regular-app-protected  # skip non-VM pods in those namespaces</code></pre>
+    <div class="callout callout-info" style="font-size:0.87rem;margin-top:0.8rem">
+      <span class="callout-icon">✅</span>
+      <div><strong>Result:</strong> descheduler only sees pods in VM namespaces AND below the priority threshold.
+      In practice this means only <code>virt-launcher</code> pods — which KubeVirt then converts to live migrations.</div>
+    </div>
+  </div>
+
+</div><!-- /vmo tab-body -->
+
+<!-- ══════════════════════════════════════════════════
+     PSI ENABLEMENT
+══════════════════════════════════════════════════ -->
+<h2>Enabling PSI Metrics <span style="font-size:0.75rem;font-weight:500;color:#64748b;margin-left:0.5rem">Required for KubeVirtRelieveAndMigrate</span></h2>
+
+<p style="font-size:0.92rem;color:#374151;margin-bottom:1rem">
+  <strong>Pressure Stall Information (PSI)</strong> is a Linux kernel feature that measures % of time tasks stall
+  waiting for CPU, memory, or I/O. It exposes real contention — not just utilisation — via <code>/proc/pressure/</code>.
+  The descheduler reads these via Prometheus <code>node_pressure_*</code> metrics.
+</p>
+
+<div class="callout callout-info" style="margin-bottom:1rem">
+  <span class="callout-icon">ℹ️</span>
+  <div><strong>Requirements</strong> — cgroups v2 (default since OCP 4.14) + kernel arg <code>psi=1</code>.
+  Fully supported from OCP 4.21. Works as tech preview on 4.17+.</div>
+</div>
+
+<div class="tab-bar" style="margin-top:0">
+  <button class="tab active" data-tab="psi-mc">1. MachineConfig</button>
+  <button class="tab" data-tab="psi-verify">2. Verify on Node</button>
+  <button class="tab" data-tab="psi-prom">3. Prometheus Metrics</button>
+  <button class="tab" data-tab="psi-cgv2">4. Check cgroups v2</button>
+</div>
+
+<div class="tab-body" style="margin-bottom:1.5rem">
+
+  <div class="tab-panel active" id="psi-mc">
+    <h3>MachineConfig — add <code>psi=1</code> kernel argument</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      Apply one per MachineConfigPool. Triggers node drain + reboot via MCO — plan maintenance window.
+    </p>
+    <p style="font-size:0.88rem;font-weight:600;color:#374151;margin-bottom:0.3rem">Worker nodes:</p>
+<pre><code>apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 05-worker-kernelargs-psi
+spec:
+  kernelArguments:
+    - psi=1</code></pre>
+    <p style="font-size:0.88rem;font-weight:600;color:#374151;margin:0.8rem 0 0.3rem">Master nodes (if monitoring control plane):</p>
+<pre><code>apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 05-master-kernelargs-psi
+spec:
+  kernelArguments:
+    - psi=1</code></pre>
+    <div class="callout callout-warn" style="margin-top:0.8rem;font-size:0.87rem">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Prometheus memory impact.</strong> At 500+ containers, each Prometheus pod RSS increases ~1.3 GB (+42%)
+      due to per-cgroup PSI metric cardinality. Monitor Prometheus memory after enabling.</div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="psi-verify">
+    <h3>Verify PSI is active on node</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">Run after MCO finishes rolling out the MachineConfig.</p>
+<pre><code># Open debug shell on node
+oc debug node/&lt;node-name&gt;
+chroot /host
+
+# Check PSI files exist and return data
+cat /proc/pressure/cpu
+cat /proc/pressure/memory
+cat /proc/pressure/io</code></pre>
+    <p style="font-size:0.88rem;color:#374151;margin:0.8rem 0 0.3rem">Expected output (values may vary):</p>
+<pre><code>some avg10=0.00 avg60=0.00 avg300=0.00 total=12345
+full avg10=0.00 avg60=0.00 avg300=0.00 total=6789</code></pre>
+    <div class="grid-2" style="margin-top:0.8rem">
+      <div class="callout callout-info" style="font-size:0.85rem;margin:0">
+        <span class="callout-icon">✅</span>
+        <div><strong>PSI active</strong> — file exists with <code>some</code>/<code>full</code> lines</div>
+      </div>
+      <div class="callout callout-warn" style="font-size:0.85rem;margin:0">
+        <span class="callout-icon">❌</span>
+        <div><strong>PSI not active</strong> — file missing or <code>Operation not supported</code></div>
+      </div>
+    </div>
+    <p style="font-size:0.88rem;color:#374151;margin-top:0.8rem">Check MCO rollout status:</p>
+<pre><code>oc get mcp worker -o jsonpath='{.status.conditions[*].type}'
+# Wait for: Updated=True, Updating=False</code></pre>
+  </div>
+
+  <div class="tab-panel" id="psi-prom">
+    <h3>Prometheus PSI Metrics</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      node_exporter automatically collects <code>/proc/pressure/</code> when PSI is enabled. No extra config needed.
+    </p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Type</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>node_pressure_cpu_waiting_seconds_total</code></td><td>counter</td><td>Time tasks waited for CPU</td></tr>
+        <tr><td><code>node_pressure_memory_waiting_seconds_total</code></td><td>counter</td><td>Time tasks waited for memory (some)</td></tr>
+        <tr><td><code>node_pressure_memory_stalled_seconds_total</code></td><td>counter</td><td>Time ALL tasks stalled for memory (full)</td></tr>
+        <tr><td><code>node_pressure_io_waiting_seconds_total</code></td><td>counter</td><td>Time tasks waited for I/O</td></tr>
+        <tr><td><code>node_pressure_io_stalled_seconds_total</code></td><td>counter</td><td>Time ALL tasks stalled for I/O (full)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p style="font-size:0.88rem;font-weight:600;color:#374151;margin:0.8rem 0 0.3rem">Verify in Prometheus console:</p>
+<pre><code># Quick check — should return values per node
+node_pressure_cpu_waiting_seconds_total
+
+# Rate of CPU pressure over 5m (useful for alerting)
+rate(node_pressure_cpu_waiting_seconds_total[5m])
+
+# Memory stall rate per node
+rate(node_pressure_memory_stalled_seconds_total[5m])</code></pre>
+  </div>
+
+  <div class="tab-panel" id="psi-cgv2">
+    <h3>Verify cgroups v2 is active</h3>
+    <p style="font-size:0.88rem;color:#64748b;margin:0.4rem 0 0.8rem">
+      PSI requires cgroups v2. Default since OCP 4.14. Verify before enabling PSI.
+    </p>
+<pre><code>oc debug node/&lt;node-name&gt;
+chroot /host
+
+# Check filesystem type of cgroup mount
+stat -f /sys/fs/cgroup | grep Type</code></pre>
+    <div class="grid-2" style="margin-top:0.8rem">
+      <div class="callout callout-info" style="font-size:0.85rem;margin:0">
+        <span class="callout-icon">✅</span>
+        <div><strong><code>Type: cgroup2fs</code></strong> — cgroups v2, PSI supported</div>
+      </div>
+      <div class="callout callout-warn" style="font-size:0.85rem;margin:0">
+        <span class="callout-icon">❌</span>
+        <div><strong><code>Type: tmpfs</code></strong> — cgroups v1, must migrate to v2 first</div>
+      </div>
+    </div>
+    <p style="font-size:0.88rem;color:#374151;margin-top:0.8rem">Also check via node labels:</p>
+<pre><code>oc get node -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.kubeletVersion}{"\n"}{end}'
+
+# Or check MachineConfigPool for cgroupv2 kernel arg
+oc get mc -o yaml | grep -A2 unified_cgroup</code></pre>
+    <div class="callout callout-amber" style="margin-top:0.8rem;font-size:0.87rem">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Real-time kernel nodes</strong> may not support PSI. Exclude RT nodes from the PSI MachineConfigPool
+      or use a separate MachineConfigPool for RT workloads.</div>
+    </div>
+  </div>
+
+</div><!-- /psi tab-body -->
+
+<!-- ══════════════════════════════════════════════════
+     CAVEATS
+══════════════════════════════════════════════════ -->
+<h2>Caveats</h2>
+<div class="callout callout-warn">
+  <span class="callout-icon">🚫</span>
+  <div><strong>Non-migratable VMs block eviction.</strong>
+  VMs with local storage, host devices, hugepages, or CDI DataVolumes not on shared storage cannot be migrated.
+  Descheduler eviction will be blocked and retried next tick. Use <code>evictionStrategy: LiveMigrateIfPossible</code> for mixed environments.</div>
+</div>
+<div class="callout callout-warn">
+  <span class="callout-icon">🔁</span>
+  <div><strong>Oscillation risk with LongLifecycle.</strong>
+  Request-based balancing can move VMs back and forth between ticks if thresholds are tight.
+  <code>KubeVirtRelieveAndMigrate</code> uses <code>PreferNoSchedule</code> taints to prevent this.</div>
+</div>
+<div class="callout callout-amber">
+  <span class="callout-icon">📋</span>
+  <div><strong>PDB concurrency limit.</strong>
+  KubeVirt PDB limits simultaneous migrations. If multiple VMs are evicted at once, some will queue.
+  Tune <code>spec.liveMigrationConfig.parallelMigrationsPerCluster</code> in the <code>HyperConverged</code> CR.</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SOURCES
+══════════════════════════════════════════════════ -->
+<h2>Sources</h2>
+<ul style="padding-left:1.3rem; line-height:2; font-size:0.9rem">
+  <li><a href="https://docs.okd.io/4.20/virt/managing_vms/advanced_vm_management/virt-enabling-descheduler-evictions.html">Enabling descheduler evictions on VMs — OKD 4.20</a></li>
+  <li><a href="https://developers.redhat.com/blog/2024/12/19/load-aware-rebalancing-openshift-virtualization">Load-aware rebalancing with OpenShift Virtualization — Red Hat Developer</a></li>
+  <li><a href="https://github.com/openshift/cluster-kube-descheduler-operator">cluster-kube-descheduler-operator — GitHub</a></li>
+  <li><a href="https://xphyr.net/post/openshift_virt_and_k8s_descheduler/">OpenShift Virtualization and the Kubernetes Descheduler — xphyr.net</a></li>
+  <li><a href="https://developers.redhat.com/articles/2026/03/18/prepare-enable-linux-pressure-stall-information-red-hat-openshift">Prepare to enable PSI on Red Hat OpenShift — Red Hat Developer</a></li>
+  <li><a href="https://docs.kernel.org/accounting/psi.html">PSI — Pressure Stall Information — Linux Kernel docs</a></li>
+</ul>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════ -->
+<script>
+// ── Mermaid init ──────────────────────────────
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  flowchart: { htmlLabels: true, curve: 'basis', padding: 20, nodeSpacing: 40, rankSpacing: 50 },
+  sequence: { diagramMarginX: 40, actorMargin: 80, messageMargin: 30 },
+});
+
+// ── Tabs — scoped to parent tab-bar + next tab-body ──────────────────────────────────────
+document.querySelectorAll('.tab-bar').forEach(bar => {
+  const body = bar.nextElementSibling; // the .tab-body immediately after
+  bar.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      bar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      body.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(target);
+      if (panel) panel.classList.add('active');
+      const nodes = panel ? panel.querySelectorAll('.mermaid:not([data-processed])') : [];
+      if (nodes.length) mermaid.run({ nodes });
+    });
+  });
+});
+// Render mermaid inside active tab panels
+mermaid.run({ nodes: document.querySelectorAll('.tab-panel.active .mermaid:not([data-processed])') });
+// Render mermaid outside any tab panel (e.g. mm-evictor in main body)
+mermaid.run({ nodes: document.querySelectorAll('.main .mermaid:not([data-processed]):not(.tab-panel .mermaid)') });
+
+// ── Swimlane ──────────────────────────────────
+const ACTORS = [
+  { id:'D',   label:'Descheduler',  color:'#1d4ed8', x: 75  },
+  { id:'API', label:'Kube API',     color:'#0369a1', x: 220 },
+  { id:'KV',  label:'KubeVirt',     color:'#7c3aed', x: 365 },
+  { id:'SRC', label:'Source Node',  color:'#c2410c', x: 510 },
+  { id:'TGT', label:'Target Node',  color:'#15803d', x: 660 },
+];
+
+const STEPS = [
+  { from:'D',   to:'D',   label:'Tick — pick overutilized node',          note:'Runs every 1800s (LongLifecycle) or 60s (KubeVirtRelieveAndMigrate)' },
+  { from:'D',   to:'API', label:'Eviction API request',                   note:'Standard Kubernetes Eviction API call targeting the virt-launcher pod' },
+  { from:'API', to:'KV',  label:'Check PodDisruptionBudget',              note:'Kube API checks if the pod is protected by a PDB before evicting' },
+  { from:'KV',  to:'API', label:'Block direct delete',    dashed:true,    note:'KubeVirt PDB blocks immediate termination — pod cannot be simply deleted' },
+  { from:'KV',  to:'KV',  label:'Create VirtualMachineInstanceMigration', note:'KubeVirt creates a VMIM CR which triggers the live migration process' },
+  { from:'KV',  to:'TGT', label:'Schedule new virt-launcher pod',         note:'New pod placed on underutilized / untainted target node by scheduler' },
+  { from:'TGT', to:'KV',  label:'Pod Running — ready to receive',dashed:true, note:'Target virt-launcher starts and signals it is ready to accept VM state' },
+  { from:'SRC', to:'TGT', label:'Pre-copy memory pages (iterative)',       note:'VM memory is streamed to target while VM continues running on source' },
+  { from:'SRC', to:'TGT', label:'Final dirty pages + CPU state',           note:'Brief VM pause to copy remaining dirty pages and freeze CPU state' },
+  { from:'SRC', to:'TGT', label:'Network / disk handover  ⟨ &lt;1s ⟩',   note:'VM network identity (MAC, IP) and storage ownership transfer to target' },
+  { from:'TGT', to:'KV',  label:'Migration complete',         dashed:true, note:'Target confirms VM is fully running — source pod is now safe to delete' },
+  { from:'KV',  to:'SRC', label:'Terminate old virt-launcher',             note:'Source pod is deleted. Kube API marks eviction as fulfilled.' },
+];
+
+function buildSwimlane() {
+  const svg     = document.getElementById('swimlane-svg');
+  const HEADER  = 70;
+  const ROW_H   = 50;
+  const LIFEOFF = 20;
+  const TOTAL_H = HEADER + LIFEOFF + STEPS.length * ROW_H + 40;
+  svg.setAttribute('viewBox', `0 0 760 ${TOTAL_H}`);
+
+  const actorX = {};
+  ACTORS.forEach(a => { actorX[a.id] = a.x; });
+
+  let html = '';
+
+  // Background stripes for readability
+  STEPS.forEach((s, i) => {
+    const y = HEADER + LIFEOFF + i * ROW_H;
+    if (i % 2 === 0) {
+      html += `<rect x="0" y="${y}" width="760" height="${ROW_H}" fill="#f8fafc" opacity="0.6"/>`;
+    }
+  });
+
+  // Actor headers
+  ACTORS.forEach(a => {
+    const w = 115, h = 38, rx = 6;
+    const x = a.x - w/2;
+    html += `<rect x="${x}" y="8" width="${w}" height="${h}" rx="${rx}" fill="${a.color}"/>`;
+    html += `<text x="${a.x}" y="31" text-anchor="middle" fill="white" font-size="12" font-weight="700">${a.label}</text>`;
+  });
+
+  // Lifelines
+  const lifeTop    = HEADER + LIFEOFF;
+  const lifeBottom = HEADER + LIFEOFF + STEPS.length * ROW_H;
+  ACTORS.forEach(a => {
+    html += `<line x1="${a.x}" y1="${lifeTop}" x2="${a.x}" y2="${lifeBottom}" stroke="${a.color}" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.4"/>`;
+  });
+
+  // Steps (arrows + labels) — initially hidden
+  STEPS.forEach((s, i) => {
+    const y   = HEADER + LIFEOFF + i * ROW_H + ROW_H / 2;
+    const x1  = actorX[s.from];
+    const x2  = actorX[s.to];
+    const isSelf = s.from === s.to;
+    const fromColor = ACTORS.find(a=>a.id===s.from).color;
+    const dash = s.dashed ? '6,3' : null;
+
+    html += `<g class="swim-step" id="ss-${i}" opacity="0">`;
+
+    // Step number badge
+    html += `<circle cx="16" cy="${y}" r="10" fill="${fromColor}" opacity="0.9"/>`;
+    html += `<text x="16" y="${y+4}" text-anchor="middle" fill="white" font-size="10" font-weight="700">${i+1}</text>`;
+
+    if (isSelf) {
+      // Self-loop: small box to the right
+      const lx = x1 + 15;
+      html += `<path d="M${x1},${y-10} L${lx+20},${y-10} L${lx+20},${y+10} L${x1},${y+10}"
+               fill="none" stroke="${fromColor}" stroke-width="1.8" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+      // arrowhead pointing left into lifeline
+      html += `<polygon points="${x1},${y+10} ${x1-0},${y+10} ${x1+8},${y+5} ${x1+8},${y+15}"
+               fill="${fromColor}" transform="rotate(90,${x1},${y+10})"/>`;
+    } else {
+      const dir  = x2 > x1 ? 1 : -1;
+      const ax1  = x1 + dir * 10;
+      const ax2  = x2 - dir * 10;
+      html += `<line x1="${ax1}" y1="${y}" x2="${ax2}" y2="${y}"
+               stroke="${fromColor}" stroke-width="2" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+      // arrowhead
+      const ah = dir === 1 ? ax2 : ax2;
+      html += `<polygon points="${ah},${y} ${ah - dir*10},${y-5} ${ah - dir*10},${y+5}" fill="${fromColor}"/>`;
+    }
+
+    // Label background + text
+    const lx = isSelf ? x1 + 35 : (x1 + x2) / 2;
+    const labelW = 180;
+    html += `<rect x="${lx - labelW/2}" y="${y-15}" width="${labelW}" height="14" rx="3" fill="white" opacity="0.85"/>`;
+    html += `<text x="${lx}" y="${y-4}" text-anchor="middle" fill="${fromColor}" font-size="10.5" font-weight="600">${s.label}</text>`;
+
+    html += `</g>`;
+  });
+
+  svg.innerHTML = html;
+}
+
+let currentStep = 0;
+let playing = false;
+let playTimer = null;
+
+function showStep(n) {
+  // Show all steps up to n
+  STEPS.forEach((_, i) => {
+    const el = document.getElementById(`ss-${i}`);
+    if (!el) return;
+    el.setAttribute('opacity', i < n ? '1' : '0');
+    if (i === n - 1) {
+      el.setAttribute('opacity', '1');
+      el.style.animation = 'fadeIn 0.3s ease';
+    }
+  });
+  document.getElementById('step-label').textContent = `Step ${n} / ${STEPS.length}`;
+  document.getElementById('step-note').textContent = n > 0 ? STEPS[n-1].note : 'Click Next or Play to walk through the eviction lifecycle.';
+  document.getElementById('btn-prev').disabled = n === 0;
+  document.getElementById('btn-next').disabled = n === STEPS.length;
+}
+
+function stopPlay() {
+  playing = false;
+  clearInterval(playTimer);
+  document.getElementById('btn-play').textContent = '▶ Play';
+}
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  stopPlay();
+  if (currentStep < STEPS.length) { currentStep++; showStep(currentStep); }
+});
+document.getElementById('btn-prev').addEventListener('click', () => {
+  stopPlay();
+  if (currentStep > 0) { currentStep--; showStep(currentStep); }
+});
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playing) { stopPlay(); return; }
+  if (currentStep === STEPS.length) { currentStep = 0; showStep(0); }
+  playing = true;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  playTimer = setInterval(() => {
+    if (currentStep < STEPS.length) {
+      currentStep++;
+      showStep(currentStep);
+    } else {
+      stopPlay();
+    }
+  }, 1400);
+});
+
+// Build on DOM ready
+buildSwimlane();
+showStep(0);
+</script>
+<style>
+@keyframes fadeIn { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
+</style>
+</body>
+</html>
