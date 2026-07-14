@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Surote/ocp-configuration.git
     targetRevision: main
-    path: config
+    path: config/machineconfigpool
     directory:
       recurse: true
   destination:
