@@ -1,3 +1,4 @@
+# Red Hat not recommend to set timezone https://access.redhat.com/solutions/5487331
 apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
