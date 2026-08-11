@@ -3,6 +3,4 @@ kind: OperatorGroup
 metadata:
   name: jobset-operator
   namespace: openshift-jobset-operator
-spec:
-  targetNamespaces:
-    - openshift-jobset-operator
+spec: {}

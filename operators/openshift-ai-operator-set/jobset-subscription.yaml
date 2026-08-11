@@ -6,6 +6,6 @@ metadata:
 spec:
   channel: stable-v1.0
   installPlanApproval: Manual
-  name: jobset-operator
+  name: job-set
   source: redhat-operators
   sourceNamespace: openshift-marketplace
