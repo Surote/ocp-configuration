@@ -20,6 +20,7 @@ schedule: 0 17 * * *
 suspend: false
 roles:
   - worker
+  - infra
   - master
 apiVersion: compliance.openshift.io/v1alpha1
 maxRetryOnTimeout: 3
