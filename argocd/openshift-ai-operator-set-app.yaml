@@ -9,8 +9,6 @@ spec:
     repoURL: https://github.com/Surote/ocp-configuration.git
     targetRevision: main
     path: operators/openshift-ai-operator-set
-    directory:
-      recurse: true
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
