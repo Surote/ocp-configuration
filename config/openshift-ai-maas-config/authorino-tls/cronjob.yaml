@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authorino-tls-setup
+  namespace: kuadrant-system
+spec:
+  schedule: "0 4 * * 0"  # weekly, Sunday 04:00 UTC
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: authorino-tls-setup
+        spec:
+          serviceAccountName: authorino-tls-setup
+          restartPolicy: OnFailure
+          containers:
+            - name: setup
+              image: registry.redhat.io/openshift4/ose-cli:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  # 2.4.1 — Annotate authorino service for serving cert
+                  echo "==> Step 2.4.1: Annotating authorino service for serving cert..."
+                  oc annotate service authorino-authorino-authorization \
+                    -n kuadrant-system \
+                    service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+                    --overwrite
+
+                  # 2.4.2 — Patch Authorino CR TLS
+                  echo "==> Step 2.4.2: Patching Authorino CR TLS config..."
+                  oc patch authorino authorino -n kuadrant-system --type=merge \
+                    -p '{"spec":{"listener":{"tls":{"enabled":true,"certSecretRef":{"name":"authorino-server-cert"}}}}}'
+
+                  # 2.4.3 — Configure Authorino deployment with TLS cert env vars
+                  echo "==> Step 2.4.3: Ensuring Authorino deployment has SSL env vars..."
+                  EXISTING=$(oc get deployment/authorino -n kuadrant-system \
+                    -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SSL_CERT_FILE")].value}')
+
+                  if [[ -z "${EXISTING}" ]]; then
+                    echo "    SSL_CERT_FILE missing — setting env vars..."
+                    oc -n kuadrant-system set env deployment/authorino \
+                      SSL_CERT_FILE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt \
+                      REQUESTS_CA_BUNDLE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt
+                    oc rollout status deployment/authorino -n kuadrant-system --timeout=120s
+                  else
+                    echo "    SSL_CERT_FILE already set — skipping"
+                  fi
+
+                  # 2.4.4 — Annotate gateway for Authorino TLS bootstrap
+                  echo "==> Step 2.4.4: Annotating gateway for Authorino TLS bootstrap..."
+                  oc annotate gateway maas-default-gateway -n openshift-ingress \
+                    security.opendatahub.io/authorino-tls-bootstrap="true" \
+                    --overwrite
+
+                  echo "==> Done. Authorino TLS backend configured."
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

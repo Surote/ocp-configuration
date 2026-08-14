@@ -5,3 +5,4 @@ resources:
   - db-secret-sync
   - tls-cert-rotation
   - gateway
+  - authorino-tls

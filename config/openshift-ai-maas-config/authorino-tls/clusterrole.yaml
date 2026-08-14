@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: authorino-tls-setup
+rules:
+  # 2.4.1 — annotate authorino service for serving cert
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "patch"]
+  # 2.4.2 — patch Authorino CR TLS config
+  - apiGroups: ["operator.authorino.kuadrant.io"]
+    resources: ["authorinos"]
+    verbs: ["get", "patch"]
+  # 2.4.3 — set env vars on Authorino deployment
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+  # 2.4.4 — annotate gateway for Authorino TLS bootstrap
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways"]
+    verbs: ["get", "patch"]
