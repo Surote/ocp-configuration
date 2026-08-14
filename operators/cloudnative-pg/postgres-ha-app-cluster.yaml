@@ -1,0 +1,24 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-ha-app
+  namespace: maas-postgres
+spec:
+  instances: 3
+
+  storage:
+    size: 10Gi
+
+  postgresql:
+    parameters:
+      shared_buffers: 256MB
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+
+  enableSuperuserAccess: true
+
+  affinity:
+    enablePodAntiAffinity: true
