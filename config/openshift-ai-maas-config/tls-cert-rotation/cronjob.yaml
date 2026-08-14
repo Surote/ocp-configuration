@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tls-cert-rotator
+  namespace: openshift-ingress
+spec:
+  schedule: "0 3 1,15 * *"  # 1st and 15th of each month at 03:00 UTC
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: tls-cert-rotator
+        spec:
+          serviceAccountName: tls-cert-rotator
+          restartPolicy: OnFailure
+          containers:
+            - name: rotator
+              image: registry.redhat.io/openshift4/ose-cli:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  echo "==> Detecting source cert from IngressController default..."
+                  CERT_SECRET=$(oc get ingresscontroller default \
+                    -n openshift-ingress-operator \
+                    -o jsonpath='{.spec.defaultCertificate.name}')
+
+                  if [[ -z "${CERT_SECRET}" ]]; then
+                    echo "ERROR: No defaultCertificate configured on IngressController"
+                    exit 1
+                  fi
+                  echo "    Source secret: ${CERT_SECRET}"
+
+                  echo "==> Extracting tls.crt and tls.key..."
+                  TLS_CRT=$(oc get secret "${CERT_SECRET}" -n openshift-ingress \
+                    -o jsonpath='{.data.tls\.crt}')
+                  TLS_KEY=$(oc get secret "${CERT_SECRET}" -n openshift-ingress \
+                    -o jsonpath='{.data.tls\.key}')
+
+                  if [[ -z "${TLS_CRT}" || -z "${TLS_KEY}" ]]; then
+                    echo "ERROR: Could not extract tls.crt or tls.key from ${CERT_SECRET}"
+                    exit 1
+                  fi
+
+                  echo "==> Applying maas-gateway-tls secret..."
+                  oc apply -f - <<EOF
+                  apiVersion: v1
+                  kind: Secret
+                  metadata:
+                    name: maas-gateway-tls
+                    namespace: openshift-ingress
+                    labels:
+                      app.kubernetes.io/managed-by: tls-cert-rotator
+                  type: kubernetes.io/tls
+                  data:
+                    tls.crt: ${TLS_CRT}
+                    tls.key: ${TLS_KEY}
+                  EOF
+
+                  echo "==> Done. maas-gateway-tls updated."
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

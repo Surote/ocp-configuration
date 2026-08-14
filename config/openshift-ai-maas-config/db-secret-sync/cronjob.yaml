@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-secret-sync
+  namespace: redhat-ods-applications
+spec:
+  schedule: "30 3 1,15 * *"  # 1st and 15th of each month at 03:30 UTC
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: db-secret-sync
+        spec:
+          serviceAccountName: db-secret-sync
+          restartPolicy: OnFailure
+          containers:
+            - name: sync
+              image: registry.redhat.io/openshift4/ose-cli:latest
+              env:
+                - name: CNPG_SECRET
+                  value: postgres-ha-app
+                - name: CNPG_NS
+                  value: maas-postgres
+                - name: TARGET_NS
+                  value: redhat-ods-applications
+                - name: DB_HOST
+                  value: postgres-ha-rw.maas-postgres.svc.cluster.local
+                - name: DB_PORT
+                  value: "5432"
+                - name: DB_NAME
+                  value: app
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  echo "==> Reading CNPG credentials from ${CNPG_NS}/${CNPG_SECRET}..."
+                  DB_USER=$(oc get secret "${CNPG_SECRET}" -n "${CNPG_NS}" \
+                    -o jsonpath='{.data.username}' | base64 -d)
+                  DB_PASS=$(oc get secret "${CNPG_SECRET}" -n "${CNPG_NS}" \
+                    -o jsonpath='{.data.password}' | base64 -d)
+
+                  if [[ -z "${DB_USER}" || -z "${DB_PASS}" ]]; then
+                    echo "ERROR: Could not read username or password from ${CNPG_SECRET}"
+                    exit 1
+                  fi
+
+                  DB_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require"
+
+                  echo "==> Applying maas-db-config secret in ${TARGET_NS}..."
+                  oc create secret generic maas-db-config \
+                    -n "${TARGET_NS}" \
+                    --from-literal=DB_CONNECTION_URL="${DB_URL}" \
+                    --dry-run=client -o yaml | oc apply -f -
+
+                  echo "==> Done. maas-db-config synced."
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
