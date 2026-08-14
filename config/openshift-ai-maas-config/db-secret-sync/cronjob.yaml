@@ -24,7 +24,7 @@ spec:
               image: registry.redhat.io/openshift4/ose-cli:latest
               env:
                 - name: CNPG_SECRET
-                  value: postgres-ha-app
+                  value: postgres-ha-app-app
                 - name: CNPG_NS
                   value: maas-postgres
                 - name: TARGET_NS
