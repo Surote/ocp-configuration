@@ -14,7 +14,7 @@ rules:
   # 2.4.3 — set env vars on Authorino deployment
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["get", "patch"]
+    verbs: ["get", "list", "watch", "patch"]
   # 2.4.4 — annotate gateway for Authorino TLS bootstrap
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gateways"]
