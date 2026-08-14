@@ -30,7 +30,7 @@ spec:
                 - name: TARGET_NS
                   value: redhat-ods-applications
                 - name: DB_HOST
-                  value: postgres-ha-rw.maas-postgres.svc.cluster.local
+                  value: postgres-ha-app-rw.maas-postgres.svc.cluster.local
                 - name: DB_PORT
                   value: "5432"
                 - name: DB_NAME
