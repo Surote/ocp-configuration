@@ -6,12 +6,10 @@ rules:
   # Read CNPG app credentials from maas-postgres namespace
   - apiGroups: [""]
     resources: ["secrets"]
-    resourceNames: ["postgres-ha-app"]
     verbs: ["get"]
   # Write maas-db-config in redhat-ods-applications
   - apiGroups: [""]
     resources: ["secrets"]
-    resourceNames: ["maas-db-config"]
     verbs: ["get", "create", "update", "patch"]
   # Needed for create (can't use resourceNames on create)
   - apiGroups: [""]
