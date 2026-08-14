@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: maas-default-gateway
+  namespace: openshift-ingress
+spec:
+  gatewayClassName: openshift-default
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "swongpai-maas.apps.rosa.rsaijp.na2y.p3.openshiftapps.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: maas-gateway-tls
+      allowedRoutes:
+        namespaces:
+          from: All #https://access.redhat.com/solutions/7145755

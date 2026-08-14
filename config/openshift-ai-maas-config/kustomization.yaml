@@ -4,3 +4,4 @@ resources:
   - managed-namespaces.yaml
   - db-secret-sync
   - tls-cert-rotation
+  - gateway
