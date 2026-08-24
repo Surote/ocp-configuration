@@ -7,6 +7,5 @@ spec:
   channel: stable
   installPlanApproval: Manual
   name: rhcl-operator
-  startingCSV: rhcl-operator.v1.3.6
   source: redhat-operators
   sourceNamespace: openshift-marketplace
