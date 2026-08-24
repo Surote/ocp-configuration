@@ -1,0 +1,22 @@
+# AlertingRule: CoreDNSForwardAllUpstreamsBroken
+# Fires when a CoreDNS pod in the openshift-dns namespace has lost all healthy
+# upstream forwarders (rate of coredns_forward_healthcheck_broken_total > 0 for 2m).
+# This indicates DNS resolution for external domains will fail on affected pods.
+apiVersion: monitoring.openshift.io/v1
+kind: AlertingRule
+metadata:
+  name: dns-upstream-broken
+  namespace: openshift-monitoring
+spec:
+  groups:
+    - name: dns.rules
+      rules:
+        - alert: CoreDNSForwardAllUpstreamsBroken
+          annotations:
+            description: 'CoreDNS pod {{ $labels.pod }} has no healthy upstream resolvers'
+            summary: CoreDNSForwardAllUpstreamsBroken
+          expr: |
+            sum by (namespace,pod) (rate(coredns_forward_healthcheck_broken_total{namespace="openshift-dns"}[5m])) > 0
+          for: 2m
+          labels:
+            severity: warning
