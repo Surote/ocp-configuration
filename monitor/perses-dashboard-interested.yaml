@@ -1,0 +1,252 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  labels:
+    app.kubernetes.io/name: perses-dashboard
+    app.kubernetes.io/instance: swongpai
+    app.kubernetes.io/part-of: perses-operator
+  name: swongpai
+  namespace: swongpai
+spec:
+  config:
+    display:
+      name: swongpai
+    panels:
+      0b31c7b2e2404306a9054896cc07e161:
+        kind: Panel
+        spec:
+          display:
+            name: p99-etcd round trip
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: >-
+                      histogram_quantile(0.99,
+                        rate(etcd_network_peer_round_trip_time_seconds_bucket[5m]))
+      1302177bd2fd41b18ff99b65d90aed21:
+        kind: Panel
+        spec:
+          display:
+            name: dns-upstream-healthcheck
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum by (pod)
+                      (rate(coredns_forward_healthcheck_broken_total{namespace="openshift-dns"}[5m]))
+      9d29a00defbf4704a1631244835cede5:
+        kind: Panel
+        spec:
+          display:
+            name: connection by route
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(irate(haproxy_backend_connections_total[1m])) by (route)
+      ac4c97c6cd2a42ae9c3c435506d38123:
+        kind: Panel
+        spec:
+          display:
+            name: node-memory-usage
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(100 * (1 - node_memory_MemAvailable_bytes /
+                      node_memory_MemTotal_bytes)) by (instance)
+                    seriesNameFormat: ""
+      d0c6cbf0e8fb4f43b3ac7778927f21ba:
+        kind: Panel
+        spec:
+          display:
+            name: "p99-etcd fsync "
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      histogram_quantile(0.99,
+                        rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m]))
+      cd2a15d103ad42c5adea76fcdfa3dd81:
+        kind: Panel
+        spec:
+          display:
+            name: cpu-throttling
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (namespace, pod, container) (
+                        rate(container_cpu_cfs_throttled_periods_total[5m]))
+                      / sum by (namespace, pod, container) (
+                        rate(container_cpu_cfs_periods_total[5m])) > 0.25
+      1dc4142c426144c2b5fad0ae3b5d1530:
+        kind: Panel
+        spec:
+          display:
+            name: cpu usage vs limit
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=""}[5m]))
+                        / sum by (namespace, pod) (kube_pod_container_resource_limits{resource="cpu"})
+      debeb6d9a05d4d11acfa62f0dc796a26:
+        kind: Panel
+        spec:
+          display:
+            name: memory headroom
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: >
+                      container_memory_working_set_bytes{container!=""}
+                        / on(namespace,pod,container) kube_pod_container_resource_limits{resource="memory"} > 0.5
+      4e95760217304e52ace9833890c1a338:
+        kind: Panel
+        spec:
+          display:
+            name: OOMkilled
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}
+      fafff86f26d74a00837e08247dd3bb2c:
+        kind: Panel
+        spec:
+          display:
+            name: restart rate
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: increase(kube_pod_container_status_restarts_total[1h]) > 0
+    layouts:
+      - kind: Grid
+        spec:
+          display:
+            title: network
+            collapse:
+              open: true
+          items:
+            - x: 0
+              "y": 9
+              width: 24
+              height: 11
+              content:
+                $ref: "#/spec/panels/1302177bd2fd41b18ff99b65d90aed21"
+            - x: 0
+              "y": 0
+              width: 24
+              height: 9
+              content:
+                $ref: "#/spec/panels/9d29a00defbf4704a1631244835cede5"
+            - x: 0
+              "y": 20
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/d0c6cbf0e8fb4f43b3ac7778927f21ba"
+            - x: 0
+              "y": 27
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/0b31c7b2e2404306a9054896cc07e161"
+            - x: 0
+              "y": 34
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/ac4c97c6cd2a42ae9c3c435506d38123"
+            - x: 0
+              "y": 40
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/cd2a15d103ad42c5adea76fcdfa3dd81"
+            - x: 0
+              "y": 46
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/1dc4142c426144c2b5fad0ae3b5d1530"
+            - x: 0
+              "y": 52
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/debeb6d9a05d4d11acfa62f0dc796a26"
+            - x: 0
+              "y": 58
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/4e95760217304e52ace9833890c1a338"
+            - x: 0
+              "y": 64
+              width: 12
+              height: 6
+              content:
+                $ref: "#/spec/panels/fafff86f26d74a00837e08247dd3bb2c"
+    variables: []
+    duration: 1h
+    refreshInterval: 30s
+    datasources: {}
+    links: []
