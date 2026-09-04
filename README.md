@@ -12,6 +12,7 @@ This section documents the full GitOps-driven installation of **Red Hat OpenShif
 |---|---|---|
 | `openshift-ai-operator-set` | `operators/openshift-ai-operator-set/` | All prerequisite operators |
 | `cloudnative-pg` | `operators/cloudnative-pg/` | PostgreSQL HA cluster for MaaS |
+| `gatewayapi` | `config/gatewayapi/` | GatewayClass and ArgoCD RBAC for Gateway API |
 | `openshift-ai-maas-config` | `config/openshift-ai-maas-config/` | MaaS runtime configuration |
 
 ### Architecture Overview
@@ -20,20 +21,20 @@ This section documents the full GitOps-driven installation of **Red Hat OpenShif
 ┌─────────────────────────────────────────────────────────────────┐
 │                      ArgoCD (openshift-gitops)                  │
 ├──────────────────┬──────────────────┬───────────────────────────┤
-│  Operator Set    │  CloudNativePG   │  MaaS Configuration       │
-│                  │                  │                           │
-│  OpenShift AI    │  CNPG Operator   │  Gateway API (HTTPS)      │
-│  NVIDIA GPU      │  Postgres HA     │  TLS Cert Rotation        │
-│  NFD             │  Cluster (3x)    │  Authorino TLS Setup      │
-│  Cert Manager    │                  │  DB Secret Sync           │
-│  Observability   │                  │  Managed Namespaces       │
-│  Tempo           │                  │                           │
-│  OpenTelemetry   │                  │                           │
-│  Connectivity    │                  │                           │
-│  Link / Kuadrant │                  │                           │
-│  JobSet          │                  │                           │
-│  MCP Gateway     │                  │                           │
-└──────────────────┴──────────────────┴───────────────────────────┘
+│  Operator Set    │  CloudNativePG   │  Gateway API   │  MaaS Config          │
+│                  │                  │                │                       │
+│  OpenShift AI    │  CNPG Operator   │  GatewayClass  │  Gateway (HTTPS)      │
+│  NVIDIA GPU      │  Postgres HA     │  ArgoCD RBAC   │  TLS Cert Rotation    │
+│  NFD             │  Cluster (3x)    │                │  Authorino TLS Setup  │
+│  Cert Manager    │                  │                │  DB Secret Sync       │
+│  Observability   │                  │                │  Managed Namespaces   │
+│  Tempo           │                  │                │                       │
+│  OpenTelemetry   │                  │                │                       │
+│  Connectivity    │                  │                │                       │
+│  Link / Kuadrant │                  │                │                       │
+│  JobSet          │                  │                │                       │
+│  MCP Gateway     │                  │                │                       │
+└──────────────────┴──────────────────┴────────────────┴───────────────────────┘
 ```
 
 ---
@@ -96,15 +97,30 @@ affinity:
 
 ---
 
-### 3. MaaS Configuration (`config/openshift-ai-maas-config/`)
+### 3. Gateway API (`config/gatewayapi/`)
+
+Before the MaaS gateway can be created, the cluster needs a **GatewayClass** and ArgoCD needs RBAC permissions to manage Gateway API resources. This directory provides both.
+
+| Resource | File | Details |
+|---|---|---|
+| GatewayClass | `gatewayclass.yaml` | `openshift-default` using `openshift.io/gateway-controller/v1` |
+| ClusterRole + ClusterRoleBinding | `argocd-gatewayapi-rbac.yaml` | Grants the ArgoCD application controller permissions to manage `gatewayclasses`, `gateways`, `httproutes`, and `referencegrants` |
+
+The ClusterRole is bound to the `openshift-gitops-argocd-application-controller` ServiceAccount so ArgoCD can create and reconcile Gateway API resources across namespaces.
+
+> **Note:** This must be synced before `openshift-ai-maas-config`, as the MaaS gateway references the `openshift-default` GatewayClass defined here.
+
+---
+
+### 4. MaaS Configuration (`config/openshift-ai-maas-config/`)
 
 This directory uses **Kustomize** (the ArgoCD app points to a `kustomization.yaml`). It configures four components:
 
-#### 3.1 Managed Namespaces
+#### 4.1 Managed Namespaces
 
 `managed-namespaces.yaml` — Ensures `redhat-ods-applications` and `openshift-ingress` namespaces exist with the `argocd.argoproj.io/managed-by: openshift-gitops` label.
 
-#### 3.2 Gateway API (`gateway/`)
+#### 4.2 Gateway API (`gateway/`)
 
 Deploys a Kubernetes Gateway API `Gateway` resource for MaaS HTTPS ingress:
 
@@ -114,13 +130,13 @@ Deploys a Kubernetes Gateway API `Gateway` resource for MaaS HTTPS ingress:
 - **Listener:** HTTPS on port 443 with TLS termination
 - **Routes:** Allowed from all namespaces
 
-#### 3.3 TLS Certificate Rotation (`tls-cert-rotation/`)
+#### 4.3 TLS Certificate Rotation (`tls-cert-rotation/`)
 
 A **CronJob** (`tls-cert-rotator`) that runs on the 1st and 15th of each month at 03:00 UTC. It copies the cluster's default ingress TLS certificate into the `maas-gateway-tls` secret used by the Gateway.
 
 **Resources:** ServiceAccount, ClusterRole, ClusterRoleBinding, CronJob
 
-#### 3.4 Authorino TLS Setup (`authorino-tls/`)
+#### 4.4 Authorino TLS Setup (`authorino-tls/`)
 
 A **CronJob** (`authorino-tls-setup`) that runs weekly (Sunday 04:00 UTC) to configure Authorino for TLS-secured authentication:
 
@@ -131,7 +147,7 @@ A **CronJob** (`authorino-tls-setup`) that runs weekly (Sunday 04:00 UTC) to con
 
 **Resources:** ServiceAccount, ClusterRole, ClusterRoleBinding, CronJob
 
-#### 3.5 Database Secret Sync (`db-secret-sync/`)
+#### 4.5 Database Secret Sync (`db-secret-sync/`)
 
 A **CronJob** (`db-secret-sync`) that runs on the 1st and 15th of each month at 03:30 UTC. It reads the CloudNativePG app credentials from `maas-postgres` namespace and creates/updates the `maas-db-config` secret in `redhat-ods-applications` with the connection URL.
 
@@ -150,7 +166,8 @@ All three ArgoCD applications sync automatically. However, the logical dependenc
 
 1. **Operators** — `openshift-ai-operator-set` syncs first; approve all InstallPlans
 2. **Database** — `cloudnative-pg` syncs; approve the InstallPlan, then wait for the Postgres cluster to become ready
-3. **MaaS config** — `openshift-ai-maas-config` syncs; CronJobs run on schedule or can be triggered manually:
+3. **Gateway API** — `gatewayapi` syncs; creates the `openshift-default` GatewayClass and grants ArgoCD the RBAC to manage Gateway API resources
+4. **MaaS config** — `openshift-ai-maas-config` syncs; CronJobs run on schedule or can be triggered manually:
    ```bash
    oc create job --from=cronjob/tls-cert-rotator tls-cert-rotator-manual -n openshift-ingress
    oc create job --from=cronjob/db-secret-sync db-secret-sync-manual -n redhat-ods-applications
