@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: openshift-ai-mlflow-config
+  name: openshift-ai-mlflow-dev
   namespace: openshift-gitops
 spec:
   project: default
   source:
     repoURL: https://github.com/Surote/ocp-configuration.git
     targetRevision: main
-    path: config/openshift-ai-mlflow
+    path: config/openshift-ai-mlflow-dev
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
