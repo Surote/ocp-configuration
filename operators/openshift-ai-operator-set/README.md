@@ -45,7 +45,6 @@ openshift-ai-operator-set/
 ├── jobset-operator-group.yaml
 ├── jobset-subscription.yaml
 ├── kuadrant-deployment.yaml
-├── kuadrant-namespace.yaml
 ├── mcp-gateway-namespace.yaml
 ├── mcp-gateway-operator-group.yaml
 ├── mcp-gateway-subscription.yaml
