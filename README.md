@@ -6,35 +6,41 @@ OpenShift 4.x cluster configuration managed via ArgoCD GitOps. All resources are
 
 ## OpenShift AI — Model-as-a-Service (MaaS) Installation
 
-This section documents the full GitOps-driven installation of **Red Hat OpenShift AI** with MaaS capabilities. The setup spans three ArgoCD-managed directories:
+This section documents the full GitOps-driven installation of **Red Hat OpenShift AI** with MaaS and MLflow capabilities. The setup spans the following ArgoCD-managed directories:
 
 | ArgoCD Application | Path | Purpose |
 |---|---|---|
 | `openshift-ai-operator-set` | `operators/openshift-ai-operator-set/` | All prerequisite operators |
-| `cloudnative-pg` | `operators/cloudnative-pg/` | PostgreSQL HA cluster for MaaS |
+| `openshift-logging` | `operators/openshift-logging/` | Cluster Logging operator |
+| `openshift-loki` | `operators/openshift-loki/` | Loki operator for log storage |
+| `cloudnative-pg` | `operators/cloudnative-pg/` | PostgreSQL HA clusters (MaaS + MLflow) |
 | `gatewayapi` | `config/gatewayapi/` | GatewayClass and ArgoCD RBAC for Gateway API |
 | `openshift-ai-maas-config` | `config/openshift-ai-maas-config/` | MaaS runtime configuration |
+| `openshift-ai-mlflow-pg` | `config/openshift-ai-mlflow-pg/` | PostgreSQL HA cluster for MLflow |
+| `openshift-ai-mlflow-dev` | `config/openshift-ai-mlflow-dev/` | MLflow experiment tracking server |
 
 ### Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      ArgoCD (openshift-gitops)                  │
-├──────────────────┬──────────────────┬───────────────────────────┤
-│  Operator Set    │  CloudNativePG   │  Gateway API   │  MaaS Config          │
-│                  │                  │                │                       │
-│  OpenShift AI    │  CNPG Operator   │  GatewayClass  │  Gateway (HTTPS)      │
-│  NVIDIA GPU      │  Postgres HA     │  ArgoCD RBAC   │  TLS Cert Rotation    │
-│  NFD             │  Cluster (3x)    │                │  Authorino TLS Setup  │
-│  Cert Manager    │                  │                │  DB Secret Sync       │
-│  Observability   │                  │                │  Managed Namespaces   │
-│  Tempo           │                  │                │                       │
-│  OpenTelemetry   │                  │                │                       │
-│  Connectivity    │                  │                │                       │
-│  Link / Kuadrant │                  │                │                       │
-│  JobSet          │                  │                │                       │
-│  MCP Gateway     │                  │                │                       │
-└──────────────────┴──────────────────┴────────────────┴───────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          ArgoCD (openshift-gitops)                           │
+├──────────────────┬──────────────┬────────────────┬───────────────────────────┤
+│  Operator Set    │  Logging     │  CloudNativePG │  Configuration            │
+│                  │              │                │                           │
+│  OpenShift AI    │  Logging     │  CNPG Operator │  Gateway API              │
+│  NVIDIA GPU      │  Loki        │                │  ├─ GatewayClass          │
+│  NFD             │              │  MaaS DB       │  └─ ArgoCD RBAC           │
+│  Cert Manager    │              │  (3x HA)       │                           │
+│  Observability   │              │                │  MaaS Config              │
+│  Tempo           │              │  MLflow DB     │  ├─ Gateway (HTTPS)       │
+│  OpenTelemetry   │              │  (3x HA)       │  ├─ TLS Cert Rotation     │
+│  Connectivity    │              │                │  ├─ Authorino TLS Setup   │
+│  Link / Kuadrant │              │                │  ├─ DB Secret Sync        │
+│  JobSet          │              │                │  └─ Managed Namespaces    │
+│  MCP Gateway     │              │                │                           │
+│                  │              │                │  MLflow                   │
+│                  │              │                │  └─ Experiment Tracking   │
+└──────────────────┴──────────────┴────────────────┴───────────────────────────┘
 ```
 
 ---
@@ -65,19 +71,46 @@ Each operator follows the standard three-file pattern: `<name>-namespace.yaml`, 
 
 ---
 
-### 2. PostgreSQL Database (`operators/cloudnative-pg/`)
+### 2. Logging and Loki
 
-MaaS requires a PostgreSQL database. This is provided by the **CloudNativePG** operator running a 3-instance HA cluster.
+Log collection and storage for the cluster, managed as separate ArgoCD applications.
+
+| Operator | Path | Subscription Name | Namespace | Channel | Source |
+|---|---|---|---|---|---|
+| **Cluster Logging** | `operators/openshift-logging/` | `cluster-logging` | `openshift-logging` | `stable-6.4` | `redhat-operators` |
+| **Loki Operator** | `operators/openshift-loki/` | `loki-operator` | `openshift-operators-redhat` | `stable-6.4` | `redhat-operators` |
+
+Each follows the standard three-file pattern (`namespace.yaml`, `operator-group.yaml`, `subscription.yaml`).
+
+---
+
+### 3. PostgreSQL Databases (`operators/cloudnative-pg/`)
+
+The **CloudNativePG** operator provides PostgreSQL HA clusters for both MaaS and MLflow.
+
+**Operator (in `operators/cloudnative-pg/`):**
 
 | Resource | File | Details |
 |---|---|---|
 | Operator namespace | `namespace.yaml` | `openshift-cnpg` |
 | OperatorGroup | `operator-group.yaml` | Cluster-scoped |
 | Subscription | `subscription.yaml` | Channel `stable-v1`, source `certified-operators` |
-| Database namespace | `maas-postgres-namespace.yaml` | `maas-postgres` |
-| Postgres cluster | `postgres-ha-app-cluster.yaml` | 3 instances, 10Gi storage, database `app` |
 
-**Cluster configuration highlights:**
+**MaaS database (in `operators/cloudnative-pg/`):**
+
+| Resource | File | Details |
+|---|---|---|
+| Database namespace | `maas-postgres-namespace.yaml` | `maas-postgres` |
+| Postgres cluster | `postgres-ha-app-cluster.yaml` | 3 instances, 10Gi, database `app`, owner `app` |
+
+**MLflow database (in `config/openshift-ai-mlflow-pg/`):**
+
+| Resource | File | Details |
+|---|---|---|
+| Database namespace | `mlflow-postgres-ns.yaml` | `mlflow-postgres` |
+| Postgres cluster | `mlflow-postgres-cluster.yaml` | 3 instances, 10Gi, database `mlflow`, owner `mlflow` |
+
+Both clusters share the same HA configuration:
 
 ```yaml
 instances: 3
@@ -86,10 +119,6 @@ storage:
 postgresql:
   parameters:
     shared_buffers: 256MB
-bootstrap:
-  initdb:
-    database: app
-    owner: app
 enableSuperuserAccess: true
 affinity:
   enablePodAntiAffinity: true    # spread across nodes
@@ -97,7 +126,7 @@ affinity:
 
 ---
 
-### 3. Gateway API (`config/gatewayapi/`)
+### 4. Gateway API (`config/gatewayapi/`)
 
 Before the MaaS gateway can be created, the cluster needs a **GatewayClass** and ArgoCD needs RBAC permissions to manage Gateway API resources. This directory provides both.
 
@@ -112,15 +141,15 @@ The ClusterRole is bound to the `openshift-gitops-argocd-application-controller`
 
 ---
 
-### 4. MaaS Configuration (`config/openshift-ai-maas-config/`)
+### 5. MaaS Configuration (`config/openshift-ai-maas-config/`)
 
 This directory uses **Kustomize** (the ArgoCD app points to a `kustomization.yaml`). It configures four components:
 
-#### 4.1 Managed Namespaces
+#### 5.1 Managed Namespaces
 
 `managed-namespaces.yaml` — Ensures `redhat-ods-applications` and `openshift-ingress` namespaces exist with the `argocd.argoproj.io/managed-by: openshift-gitops` label.
 
-#### 4.2 Gateway API (`gateway/`)
+#### 5.2 Gateway API (`gateway/`)
 
 Deploys a Kubernetes Gateway API `Gateway` resource for MaaS HTTPS ingress:
 
@@ -130,13 +159,13 @@ Deploys a Kubernetes Gateway API `Gateway` resource for MaaS HTTPS ingress:
 - **Listener:** HTTPS on port 443 with TLS termination
 - **Routes:** Allowed from all namespaces
 
-#### 4.3 TLS Certificate Rotation (`tls-cert-rotation/`)
+#### 5.3 TLS Certificate Rotation (`tls-cert-rotation/`)
 
 A **CronJob** (`tls-cert-rotator`) that runs on the 1st and 15th of each month at 03:00 UTC. It copies the cluster's default ingress TLS certificate into the `maas-gateway-tls` secret used by the Gateway.
 
 **Resources:** ServiceAccount, ClusterRole, ClusterRoleBinding, CronJob
 
-#### 4.4 Authorino TLS Setup (`authorino-tls/`)
+#### 5.4 Authorino TLS Setup (`authorino-tls/`)
 
 A **CronJob** (`authorino-tls-setup`) that runs weekly (Sunday 04:00 UTC) to configure Authorino for TLS-secured authentication:
 
@@ -147,7 +176,7 @@ A **CronJob** (`authorino-tls-setup`) that runs weekly (Sunday 04:00 UTC) to con
 
 **Resources:** ServiceAccount, ClusterRole, ClusterRoleBinding, CronJob
 
-#### 4.5 Database Secret Sync (`db-secret-sync/`)
+#### 5.5 Database Secret Sync (`db-secret-sync/`)
 
 A **CronJob** (`db-secret-sync`) that runs on the 1st and 15th of each month at 03:30 UTC. It reads the CloudNativePG app credentials from `maas-postgres` namespace and creates/updates the `maas-db-config` secret in `redhat-ods-applications` with the connection URL.
 
@@ -160,12 +189,43 @@ postgresql://<user>:<pass>@postgres-ha-app-rw.maas-postgres.svc.cluster.local:54
 
 ---
 
+### 6. MLflow Experiment Tracking (`config/openshift-ai-mlflow-dev/`)
+
+**MLflow** provides experiment tracking, model registry, and artifact storage for AI/ML workflows within OpenShift AI.
+
+| Resource | File | Details |
+|---|---|---|
+| MLflow CR | `config/openshift-ai-mlflow-dev/mlflow.yaml` | Deployed in `redhat-ods-applications` |
+
+**Configuration:**
+
+```yaml
+apiVersion: mlflow.opendatahub.io/v1
+kind: MLflow
+metadata:
+  name: mlflow
+  namespace: redhat-ods-applications
+spec:
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  backendStoreUri: "sqlite:////mlflow/mlflow.db"
+  artifactsDestination: "file:///mlflow/artifacts"
+```
+
+The MLflow PostgreSQL cluster (section 3) is available at `postgres-ha-app-rw.mlflow-postgres.svc.cluster.local:5432` for future migration from SQLite to PostgreSQL-backed tracking.
+
+---
+
 ### Deployment Order
 
 All three ArgoCD applications sync automatically. However, the logical dependency order is:
 
-1. **Operators** — `openshift-ai-operator-set` syncs first; approve all InstallPlans
-2. **Database** — `cloudnative-pg` syncs; approve the InstallPlan, then wait for the Postgres cluster to become ready
+1. **Operators** — `openshift-ai-operator-set`, `openshift-logging`, `openshift-loki` sync first; approve all InstallPlans
+2. **Databases** — `cloudnative-pg` and `openshift-ai-mlflow-pg` sync; approve the CNPG InstallPlan, then wait for both Postgres clusters to become ready
 3. **Gateway API** — `gatewayapi` syncs; creates the `openshift-default` GatewayClass and grants ArgoCD the RBAC to manage Gateway API resources
 4. **MaaS config** — `openshift-ai-maas-config` syncs; CronJobs run on schedule or can be triggered manually:
    ```bash
@@ -173,14 +233,16 @@ All three ArgoCD applications sync automatically. However, the logical dependenc
    oc create job --from=cronjob/db-secret-sync db-secret-sync-manual -n redhat-ods-applications
    oc create job --from=cronjob/authorino-tls-setup authorino-tls-setup-manual -n kuadrant-system
    ```
+5. **MLflow** — `openshift-ai-mlflow-dev` syncs; deploys the MLflow experiment tracking server
 
 ### Post-Installation
 
 After all operators are installed and CronJobs have completed:
 
-1. Verify the Postgres cluster is healthy:
+1. Verify both Postgres clusters are healthy:
    ```bash
    oc get cluster postgres-ha-app -n maas-postgres
+   oc get cluster postgres-ha-app -n mlflow-postgres
    ```
 2. Verify the `maas-db-config` secret exists:
    ```bash
@@ -190,4 +252,8 @@ After all operators are installed and CronJobs have completed:
    ```bash
    oc get gateway maas-default-gateway -n openshift-ingress
    ```
-4. Access MaaS via the configured hostname
+4. Verify MLflow is running:
+   ```bash
+   oc get mlflow mlflow -n redhat-ods-applications
+   ```
+5. Access MaaS via the configured hostname
