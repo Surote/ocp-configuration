@@ -64,7 +64,7 @@ All operators use `installPlanApproval: Manual`. After ArgoCD syncs the subscrip
 
 **Additional resources in this directory:**
 
-- `user-workload-monitoring-configmap.yaml` — Enables user workload monitoring (`enableUserWorkload: true`) in `openshift-monitoring`
+- `user-workload-monitoring-configmap.yaml` — Disables user workload monitoring (`enableUserWorkload: false`) in `openshift-monitoring` — RHOAI 3.5+ uses the Cluster Observability Operator (COO) MonitoringStack instead of UWM
 - `kuadrant-deployment.yaml` — Deploys the `Kuadrant` CR in `kuadrant-system` with observability enabled
 
 Each operator follows the standard three-file pattern: `<name>-namespace.yaml`, `<name>-operator-group.yaml`, `<name>-subscription.yaml`.
