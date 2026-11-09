@@ -4,5 +4,6 @@ resources:
   - serviceaccount.yaml
   - role.yaml
   - rolebinding.yaml
+  - networkpolicy.yaml
   - cronjob.yaml
   - job.yaml
