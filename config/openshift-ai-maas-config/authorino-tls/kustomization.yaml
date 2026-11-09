@@ -5,3 +5,4 @@ resources:
   - clusterrole.yaml
   - clusterrolebinding.yaml
   - cronjob.yaml
+  - job.yaml

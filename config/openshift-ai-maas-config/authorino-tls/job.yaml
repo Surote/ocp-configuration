@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: authorino-tls-setup-initial
+  namespace: kuadrant-system
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: authorino-tls-setup
+    spec:
+      serviceAccountName: authorino-tls-setup
+      restartPolicy: OnFailure
+      containers:
+        - name: setup
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+
+              # 2.4.1 — Annotate authorino service for serving cert
+              echo "==> Step 2.4.1: Annotating authorino service for serving cert..."
+              oc annotate service authorino-authorino-authorization \
+                -n kuadrant-system \
+                service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert \
+                --overwrite
+
+              # 2.4.2 — Patch Authorino CR TLS
+              echo "==> Step 2.4.2: Patching Authorino CR TLS config..."
+              oc patch authorino authorino -n kuadrant-system --type=merge \
+                -p '{"spec":{"listener":{"tls":{"enabled":true,"certSecretRef":{"name":"authorino-server-cert"}}}}}'
+
+              # 2.4.3 — Trust the OpenShift service CA for outbound calls (maas-api :8443)
+              echo "==> Step 2.4.3: Setting SSL env vars on Authorino deployment..."
+              oc -n kuadrant-system set env deployment/authorino \
+                SSL_CERT_FILE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt \
+                REQUESTS_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+              oc rollout status deployment/authorino -n kuadrant-system --timeout=120s
+
+              # 2.4.4 — Annotate gateway for Authorino TLS bootstrap
+              echo "==> Step 2.4.4: Annotating gateway for Authorino TLS bootstrap..."
+              oc annotate gateway maas-default-gateway -n openshift-ingress \
+                security.opendatahub.io/authorino-tls-bootstrap="true" \
+                --overwrite
+
+              echo "==> Done. Authorino TLS backend configured."
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

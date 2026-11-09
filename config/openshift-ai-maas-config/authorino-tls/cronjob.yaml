@@ -40,20 +40,12 @@ spec:
                   oc patch authorino authorino -n kuadrant-system --type=merge \
                     -p '{"spec":{"listener":{"tls":{"enabled":true,"certSecretRef":{"name":"authorino-server-cert"}}}}}'
 
-                  # 2.4.3 — Configure Authorino deployment with TLS cert env vars
-                  echo "==> Step 2.4.3: Ensuring Authorino deployment has SSL env vars..."
-                  EXISTING=$(oc get deployment/authorino -n kuadrant-system \
-                    -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SSL_CERT_FILE")].value}')
-
-                  if [[ -z "${EXISTING}" ]]; then
-                    echo "    SSL_CERT_FILE missing — setting env vars..."
-                    oc -n kuadrant-system set env deployment/authorino \
-                      SSL_CERT_FILE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt \
-                      REQUESTS_CA_BUNDLE=/etc/ssl/certs/openshift-service-ca/service-ca-bundle.crt
-                    oc rollout status deployment/authorino -n kuadrant-system --timeout=120s
-                  else
-                    echo "    SSL_CERT_FILE already set — skipping"
-                  fi
+                  # 2.4.3 — Trust the OpenShift service CA for outbound calls (maas-api :8443)
+                  echo "==> Step 2.4.3: Setting SSL env vars on Authorino deployment..."
+                  oc -n kuadrant-system set env deployment/authorino \
+                    SSL_CERT_FILE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt \
+                    REQUESTS_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                  oc rollout status deployment/authorino -n kuadrant-system --timeout=120s
 
                   # 2.4.4 — Annotate gateway for Authorino TLS bootstrap
                   echo "==> Step 2.4.4: Annotating gateway for Authorino TLS bootstrap..."
