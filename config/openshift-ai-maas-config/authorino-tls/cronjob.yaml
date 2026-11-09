@@ -53,6 +53,14 @@ spec:
                     security.opendatahub.io/authorino-tls-bootstrap="true" \
                     --overwrite
 
+                  # 2.4.5 — Trigger odh-model-controller to re-reconcile the gateway.
+                  # It does not watch the Authorino CR, so enabling TLS alone never
+                  # creates the gateway->Authorino TLS EnvoyFilter on an existing gateway.
+                  echo "==> Step 2.4.5: Triggering gateway reconcile for EnvoyFilter..."
+                  oc annotate gateway maas-default-gateway -n openshift-ingress \
+                    security.opendatahub.io/authorino-tls-reconciled-at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                    --overwrite
+
                   echo "==> Done. Authorino TLS backend configured."
               resources:
                 requests:
