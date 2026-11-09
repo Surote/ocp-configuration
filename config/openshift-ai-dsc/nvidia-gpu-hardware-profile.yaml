@@ -1,0 +1,43 @@
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: nvidia-gpu
+  namespace: redhat-ods-applications
+  labels:
+    app.kubernetes.io/part-of: hardwareprofile
+    app.opendatahub.io/hardwareprofile: "true"
+  annotations:
+    opendatahub.io/display-name: NVIDIA GPU (H100)
+    opendatahub.io/description: 1x NVIDIA H100 80GB with 4 CPUs and 32 GiB memory by default. Customizable up to 14 CPUs and 200 GiB memory.
+    opendatahub.io/disabled: "false"
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  identifiers:
+    - displayName: CPU
+      identifier: cpu
+      resourceType: CPU
+      minCount: 1
+      defaultCount: 4
+      maxCount: 14
+    - displayName: Memory
+      identifier: memory
+      resourceType: Memory
+      minCount: 8Gi
+      defaultCount: 32Gi
+      maxCount: 200Gi
+    - displayName: NVIDIA GPU
+      identifier: nvidia.com/gpu
+      resourceType: Accelerator
+      minCount: 1
+      defaultCount: 1
+      maxCount: 2
+  scheduling:
+    type: Node
+    node:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

@@ -17,3 +17,13 @@ rules:
       - update
       - patch
       - delete
+  - apiGroups:
+      - dscinitialization.opendatahub.io
+    resources:
+      - dscinitializations
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
