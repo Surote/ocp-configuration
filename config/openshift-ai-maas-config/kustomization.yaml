@@ -7,3 +7,4 @@ resources:
   - tls-cert-rotation
   - gateway
   - authorino-tls
+  - telemetry
