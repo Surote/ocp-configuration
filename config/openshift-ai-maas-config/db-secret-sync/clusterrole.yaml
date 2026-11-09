@@ -2,12 +2,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: db-secret-sync
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
 rules:
   # Read CNPG app credentials from maas-postgres namespace
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get"]
-  # Write maas-db-config in redhat-ods-applications
+  # Write maas-db-config in redhat-ai-gateway-infra
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "create", "update", "patch"]

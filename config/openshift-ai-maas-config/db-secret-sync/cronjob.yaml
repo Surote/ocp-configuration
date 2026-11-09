@@ -28,7 +28,7 @@ spec:
                 - name: CNPG_NS
                   value: maas-postgres
                 - name: TARGET_NS
-                  value: redhat-ods-applications
+                  value: redhat-ai-gateway-infra
                 - name: DB_HOST
                   value: postgres-ha-app-rw.maas-postgres.svc.cluster.local
                 - name: DB_PORT

@@ -20,6 +20,10 @@ spec:
       managementState: Removed
     ogx:
       managementState: Managed
+    aigateway:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Managed
     kueue:
       managementState: Removed
     mlflowoperator:
