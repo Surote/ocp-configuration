@@ -1,0 +1,41 @@
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    app.kubernetes.io/name: datasciencecluster
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  components:
+    dashboard:
+      managementState: Managed
+    aipipelines:
+      managementState: Managed
+    feastoperator:
+      managementState: Managed
+    kserve:
+      managementState: Managed
+    llamastackoperator:
+      managementState: Removed
+    ogx:
+      managementState: Managed
+    kueue:
+      managementState: Removed
+    mlflowoperator:
+      managementState: Managed
+    sparkoperator:
+      managementState: Removed
+    modelregistry:
+      managementState: Managed
+      registriesNamespace: rhoai-model-registries
+    ray:
+      managementState: Managed
+    workbenches:
+      managementState: Managed
+    trainer:
+      managementState: Managed
+    trainingoperator:
+      managementState: Removed
+    trustyai:
+      managementState: Managed
