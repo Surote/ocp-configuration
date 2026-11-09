@@ -3,6 +3,9 @@ kind: Cluster
 metadata:
   name: postgres-ha-app
   namespace: maas-postgres
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   instances: 3
 
