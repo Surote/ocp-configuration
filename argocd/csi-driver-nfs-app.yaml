@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csi-driver-nfs
+  namespace: openshift-gitops
+spec:
+  project: default
+  sources:
+    - repoURL: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+      chart: csi-driver-nfs
+      targetRevision: 4.13.6
+      helm:
+        releaseName: csi-driver-nfs
+        valuesObject:
+          controller:
+            runOnControlPlane: true
+            replicas: 2
+            strategyType: RollingUpdate
+          externalSnapshotter:
+            enabled: true
+            customResourceDefinitions:
+              enabled: false
+    - repoURL: https://github.com/Surote/ocp-configuration.git
+      targetRevision: main
+      path: config/csi-driver-nfs
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: csi-driver-nfs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
