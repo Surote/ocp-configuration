@@ -1,0 +1,8 @@
+# Example only: not synced by ArgoCD (the csi-driver-nfs app does not recurse into subdirectories).
+# Move it up one level to manage it via GitOps.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-nfs-snapclass
+driver: nfs.csi.k8s.io
+deletionPolicy: Delete

@@ -1,0 +1,16 @@
+# Example only: not synced by ArgoCD (the csi-driver-nfs app does not recurse into subdirectories).
+# Copy and adjust server/share, then apply manually or move it up one level to manage it via GitOps.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-csi
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: nfs-server.example.com # NFS server IP/FQDN
+  share: /example-dir # NFS server exported directory
+  subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name} # per-PV subdirectory template
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
